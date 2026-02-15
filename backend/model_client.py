@@ -79,7 +79,7 @@ class ModelClient:
         # Convert messages format - Anthropic requires system message separate
         system_message = None
         converted_messages = []
-        
+
         for msg in messages:
             if msg["role"] == "system":
                 system_message = msg["content"]
@@ -88,6 +88,14 @@ class ModelClient:
                     "role": msg["role"],
                     "content": msg["content"]
                 })
+
+        # Anthropic requires at least one message
+        # If only system message exists, create a user message to start the conversation
+        if not converted_messages:
+            converted_messages.append({
+                "role": "user",
+                "content": "Please provide your response."
+            })
         
         try:
             start_time = time.time()
