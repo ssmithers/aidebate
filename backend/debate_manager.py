@@ -4,19 +4,16 @@ import uuid
 from pathlib import Path
 import sys
 
-# Add DALS to path for LMWorker import
-sys.path.append('/Users/ssmithers/Desktop/CODE/dals')
-from worker.lm_client import LMWorker
-
 from .models import DebateSession, DebateTurn, DebateResponse
 from .citation_processor import extract_citations
+from .model_client import ModelClient
 
 
 class DebateManager:
     def __init__(self, sessions_dir: Path):
         self.sessions_dir = sessions_dir
         self.sessions_dir.mkdir(exist_ok=True)
-        self.worker = LMWorker()
+        self.client = ModelClient()
 
         # Policy debate flow (1-minute speeches)
         self.policy_debate_flow = [
@@ -109,8 +106,8 @@ class DebateManager:
         # Build context and system prompt
         context = self._build_context(session, side, current_speech, moderator_message)
 
-        # Call LM Studio
-        result = self.worker.chat(
+        # Call model (either LM Studio or Anthropic API)
+        result = self.client.chat(
             model_alias,
             context,
             temperature=session.settings["temperature"],

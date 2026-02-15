@@ -20,7 +20,7 @@ sessions_dir = Path(__file__).parent.parent / 'sessions'
 debate_manager = DebateManager(sessions_dir)
 
 # Load models config
-models_config_path = Path('/Users/ssmithers/Desktop/CODE/dals/config/models.json')
+models_config_path = Path(__file__).parent.parent / 'config' / 'models.json'
 with open(models_config_path) as f:
     models_config = json.load(f)
 
@@ -33,7 +33,7 @@ def index():
 
 @app.route('/api/models', methods=['GET'])
 def get_models():
-    """Return available LM Studio models."""
+    """Return available models (both local and API)."""
     models = []
     for alias, config in models_config['models'].items():
         # Skip embedding models
@@ -42,7 +42,8 @@ def get_models():
         models.append({
             'alias': alias,
             'id': config['id'],
-            'name': alias.replace('-', ' ').title()
+            'name': config.get('name', alias.replace('-', ' ').title()),
+            'type': config.get('type', 'lm_studio')
         })
     return jsonify({'models': models})
 
