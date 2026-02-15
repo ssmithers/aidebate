@@ -109,12 +109,24 @@ async function startNewDebate() {
 
         // Start debate
         currentSession = await API.startDebate(topic, model1, model2, model1Position);
-        
+
         // Show debate view
         showDebateView();
 
-        // Execute first speech automatically
-        await advanceToNextSpeech();
+        // Show ready message for opening statements
+        DebateUI.appendMessage(`
+            <div class="message moderator" style="background-color: rgba(74, 144, 226, 0.2); border-color: #4a90e2;">
+                <div class="message-header">
+                    <span style="color: #4a90e2;">✓ Debate Configured</span>
+                </div>
+                <div class="message-content">
+                    <strong>Topic:</strong> ${currentSession.topic}<br>
+                    <strong>Affirmative:</strong> ${currentSession.models.aff}<br>
+                    <strong>Negative:</strong> ${currentSession.models.neg}<br><br>
+                    Click <strong>"Next Speech"</strong> to begin with opening statements (1AC).
+                </div>
+            </div>
+        `);
     } catch (error) {
         console.error('Failed to start debate:', error);
         alert(`Failed to start debate: ${error.message}`);
