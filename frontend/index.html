@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Debate Simulator</title>
+    <link rel="stylesheet" href="css/debate.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="site-header">
+        <div class="container">
+            <nav>
+                <div class="logo">AI Debate Simulator</div>
+                <div class="header-controls">
+                    <button id="new-debate-btn" class="btn btn-secondary" style="display: none;">New Debate</button>
+                    <button id="settings-btn" class="btn btn-secondary" style="display: none;">Settings</button>
+                    <button id="export-btn" class="btn btn-secondary" style="display: none;">Export</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Setup Panel (shown on load) -->
+        <div id="setup-panel" class="setup-panel">
+            <div class="setup-card">
+                <h1>Configure Your Debate</h1>
+                <p>Select two AI models to debate a topic of your choice. You'll act as the moderator.</p>
+                
+                <div class="form-group">
+                    <label for="topic-input">Debate Topic:</label>
+                    <input type="text" id="topic-input" class="input-field" 
+                           placeholder="e.g., Universal basic income is beneficial for society">
+                </div>
+
+                <div class="model-selection">
+                    <div class="form-group">
+                        <label for="model1-select">Model 1 (Pro):</label>
+                        <select id="model1-select" class="input-field">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="model2-select">Model 2 (Con):</label>
+                        <select id="model2-select" class="input-field">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="start-debate-btn" class="btn btn-primary" disabled>Start Debate</button>
+            </div>
+        </div>
+
+        <!-- Debate View (hidden initially) -->
+        <div id="debate-view" style="display: none;">
+            <div class="debate-header">
+                <h2 id="debate-topic" class="debate-topic"></h2>
+                <div class="model-badges">
+                    <span class="model-badge pro" id="pro-model-badge"></span>
+                    <span class="model-badge con" id="con-model-badge"></span>
+                </div>
+            </div>
+
+            <!-- Conversation Window -->
+            <div id="conversation-window" class="conversation-window">
+                <!-- Messages will be appended here -->
+            </div>
+
+            <!-- Moderator Controls -->
+            <div class="moderator-controls">
+                <div class="control-row">
+                    <textarea id="moderator-input" class="input-field" 
+                              placeholder="Ask a question or provide direction (optional)..." 
+                              rows="2"></textarea>
+                    <div class="button-group">
+                        <button id="send-btn" class="btn btn-primary">Send Question</button>
+                        <button id="continue-btn" class="btn btn-secondary">Continue Debate</button>
+                        <button id="end-topic-btn" class="btn btn-danger">End Topic</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="loading-indicator" style="display: none;">
+                <div class="spinner"></div>
+                <p>Models are thinking...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Debate Settings</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="temperature-input">Temperature (0.0 - 1.0):</label>
+                    <input type="number" id="temperature-input" class="input-field" 
+                           value="0.3" min="0" max="1" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="max-tokens-input">Max Tokens:</label>
+                    <input type="number" id="max-tokens-input" class="input-field" 
+                           value="16384" min="512" max="32768" step="512">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary modal-save">Save Settings</button>
+                <button class="btn btn-secondary modal-close">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/debate-ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
