@@ -262,59 +262,78 @@ class DebateManager:
         """
         Remove thinking blocks from model output.
 
-        Some models leak their reasoning process in various formats:
-        - <think>...</think> tags
-        - Numbered reasoning steps (1. **Analyze**, 2. **Determine**, etc.)
-        - Text before </think> tag
+        Models leak reasoning in multiple formats - aggressively strip all of it.
         """
         import re
 
-        # Pattern 1: Remove <think>...</think> blocks (full tags)
+        # Pattern 1: Remove <think>...</think> blocks
         cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
 
-        # Pattern 2: Remove everything before and including </think> tag
+        # Pattern 2: Remove everything before </think> tag
         cleaned = re.sub(r'^.*?</think>\s*', '', cleaned, flags=re.DOTALL)
 
-        # Pattern 3: Remove numbered reasoning steps (e.g., "1. **Analyze the Request:**")
-        # This catches models that output their thinking as numbered lists
-        # Look for patterns like: "1. **Something:**" through "5. **Something:**" followed by actual content
+        # Pattern 3: Remove markdown-style thinking sections
+        # Matches: "1. **Analyze...", "2. **Determine...", "3. **Identify..." etc.
+        # Strategy: Find the LAST numbered section, then take content after it
 
-        # Find if there's a numbered reasoning section followed by actual argumentative content
+        # Find all sections that look like: "N. **Title:**" (thinking headers)
+        thinking_pattern = r'^\s*\d+\.\s*\*\*[^:]+:\*\*\s*$'
+
         lines = cleaned.split('\n')
+        last_thinking_header = -1
 
-        # Check if the response starts with numbered reasoning (1., 2., 3., etc.)
-        if len(lines) > 0 and re.match(r'^\s*\d+\.\s*\*\*', lines[0]):
-            # Find where the numbered reasoning ends and actual content begins
-            # Usually the actual content starts after the last numbered item
-            # or when we see a paragraph that doesn't start with a number
+        # Find the last thinking-style header
+        for i, line in enumerate(lines):
+            if re.match(thinking_pattern, line.strip()):
+                last_thinking_header = i
 
-            actual_content_start = 0
-            for i, line in enumerate(lines):
-                # Skip empty lines and numbered items
-                if not line.strip() or re.match(r'^\s*\d+\.\s*\*\*', line) or re.match(r'^\s*\*\s*\*', line):
+        # If we found thinking headers, look for content after them
+        if last_thinking_header >= 0:
+            # Look for actual content after the thinking section
+            # Real content is usually:
+            # - Long paragraphs (>100 chars)
+            # - Doesn't start with asterisks
+            # - Doesn't start with numbers
+
+            for i in range(last_thinking_header + 1, len(lines)):
+                line = lines[i].strip()
+                # Skip empty, asterisk bullets, and sub-numbering
+                if not line or line.startswith('*') or line.startswith('-'):
                     continue
-                # Found a line that's not part of the reasoning structure
-                # Check if it looks like actual argumentative content
-                if len(line.strip()) > 50 and not line.strip().startswith('*'):
-                    actual_content_start = i
+                # Check if this looks like real content
+                # Real debate content usually starts with a capital letter and forms sentences
+                if len(line) > 80 and not re.match(r'^\s*\d+\.', line):
+                    # Found real content - take everything from here
+                    cleaned = '\n'.join(lines[i:])
                     break
+            else:
+                # Didn't find clear content - take last 30% of text as fallback
+                split_point = int(len(lines) * 0.7)
+                cleaned = '\n'.join(lines[split_point:])
 
-            if actual_content_start > 0:
-                cleaned = '\n'.join(lines[actual_content_start:])
+        # Pattern 4: If response contains "Drafting" markers, extract content after them
+        draft_markers = [
+            r'\*\s*Final.*?:\*\s*(.+)',
+            r'Final\s+(?:Question|Response|Output|Statement):\s*(.+)',
+            r'(?:My|The)\s+(?:Question|Response|Answer|Argument):\s*(.+)'
+        ]
 
-        # Pattern 4: Last resort - if still starts with "1. **Analyze" or similar, just take everything after "Drafting"
-        if re.match(r'^\s*1\.\s*\*\*Analyze', cleaned, re.IGNORECASE):
-            # Find content after "Drafting the Content" or "Final Output" or similar
-            match = re.search(r'(?:Drafting|Final Output|Output Generation).*?:\s*\n\s*\n(.+)', cleaned, re.DOTALL | re.IGNORECASE)
+        for marker in draft_markers:
+            match = re.search(marker, cleaned, re.DOTALL | re.IGNORECASE)
             if match:
                 cleaned = match.group(1)
-            else:
-                # If we can't find a clear marker, just take the last substantial paragraph
-                paragraphs = [p.strip() for p in cleaned.split('\n\n') if len(p.strip()) > 100]
-                if paragraphs:
-                    cleaned = paragraphs[-1]
+                break
 
-        # Remove any leading/trailing whitespace
+        # Pattern 5: Last resort - if still has thinking markers, take last paragraph
+        if re.search(r'\*\s*\*[A-Z][^:]+:', cleaned):
+            paragraphs = [p.strip() for p in cleaned.split('\n\n') if len(p.strip()) > 100]
+            if paragraphs:
+                # Take the last substantial paragraph
+                cleaned = paragraphs[-1]
+
+        # Clean up any remaining asterisk bullets at the start
+        cleaned = re.sub(r'^\s*\*+\s*', '', cleaned)
+
         return cleaned.strip()
 
     def _save_session(self, session: DebateSession):

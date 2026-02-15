@@ -3,17 +3,45 @@
  */
 const DebateUI = {
     /**
+     * Format content for better readability
+     */
+    formatContent(content) {
+        // Clean up any remaining thinking artifacts
+        content = content.replace(/^\s*\*+\s*/gm, '');
+        content = content.replace(/^\s*-\s+\*/gm, '•');
+
+        // Convert double newlines to paragraph breaks
+        content = content.replace(/\n\n+/g, '</p><p>');
+
+        // Wrap in paragraph tags if not already wrapped
+        if (!content.startsWith('<p>')) {
+            content = '<p>' + content + '</p>';
+        }
+
+        // Make **bold** work
+        content = content.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+        // Make *italic* work
+        content = content.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+        return content;
+    },
+
+    /**
      * Render a policy debate message
      */
     renderMessage(message, speechName, speechType) {
         const { model_alias, stance, speaker_position, content, citations, latency_ms } = message;
-        
+
         const latencySec = (latency_ms / 1000).toFixed(1);
         const stanceLabel = stance === 'aff' ? 'AFF' : 'NEG';
-        
+
         const speechTypeLabel = this.getSpeechTypeLabel(speechType);
-        
-        const citationsHTML = citations.length > 0 
+
+        // Format content for better display
+        const formattedContent = this.formatContent(content);
+
+        const citationsHTML = citations.length > 0
             ? `<div class="citations">
                  <strong>Sources:</strong><br>
                  ${citations.map(c => `<div class="citation">[${c.id}] ${c.text}</div>`).join('')}
@@ -26,7 +54,7 @@ const DebateUI = {
                     <span><strong>${speechName}</strong> - ${speaker_position} (${stanceLabel}): ${model_alias}</span>
                     <span class="message-meta">${latencySec}s • ${speechTypeLabel}</span>
                 </div>
-                <div class="message-content">${content}</div>
+                <div class="message-content">${formattedContent}</div>
                 ${citationsHTML}
             </div>
         `;

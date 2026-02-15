@@ -312,8 +312,26 @@ body {
 
 .message-content {
   color: #1a1a2e;
-  line-height: 1.6;
+  line-height: 1.7;
   margin-bottom: 0.5rem;
+}
+
+.message-content p {
+  margin-bottom: 0.75rem;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-content strong {
+  color: #0f3460;
+  font-weight: 600;
+}
+
+.message-content em {
+  font-style: italic;
+  color: #2c3e50;
 }
 
 .citations {
