@@ -116,8 +116,14 @@ class DebateManager:
 
         # Process response
         if result["success"]:
+            # First strip thinking blocks
             clean_content = self._strip_thinking_blocks(result["content"])
-            content, citations = extract_citations(clean_content)
+
+            # Then format through Opus for consistency
+            formatted_content = self._format_through_opus(clean_content, current_speech)
+
+            # Extract citations
+            content, citations = extract_citations(formatted_content)
         else:
             content = f"[ERROR: {result['error']}]"
             citations = []
@@ -335,6 +341,61 @@ class DebateManager:
         cleaned = re.sub(r'^\s*\*+\s*', '', cleaned)
 
         return cleaned.strip()
+
+    def _format_through_opus(self, raw_content: str, current_speech: dict) -> str:
+        """
+        Pass response through Claude Opus for consistent formatting.
+
+        This ensures all responses (from any model) are clean, professional,
+        and properly formatted for debate display.
+        """
+        speech_type = current_speech["type"]
+
+        # Create formatting prompt based on speech type
+        if speech_type == "constructive":
+            instruction = (
+                "Extract and format the debate argument. Remove any planning notes, "
+                "thinking markers, or meta-commentary. Return ONLY the actual argument "
+                "with clear paragraphs. Keep any [Source: ...] citations intact."
+            )
+        elif speech_type == "cx_question":
+            instruction = (
+                "Extract and format the cross-examination question. Remove any planning "
+                "notes or strategic analysis. Return ONLY the actual question being asked, "
+                "formatted as 1-2 clear, direct sentences."
+            )
+        elif speech_type == "cx_answer":
+            instruction = (
+                "Extract and format the cross-examination answer. Remove any planning "
+                "notes. Return ONLY the actual answer, formatted clearly in 1-2 paragraphs."
+            )
+        else:  # rebuttal
+            instruction = (
+                "Extract and format the rebuttal. Remove any planning notes or analysis. "
+                "Return ONLY the actual rebuttal arguments with clear paragraphs. "
+                "Keep any [Source: ...] citations intact."
+            )
+
+        formatting_prompt = [
+            {
+                "role": "user",
+                "content": f"{instruction}\n\nRaw content to format:\n\n{raw_content}"
+            }
+        ]
+
+        # Call Opus for formatting (use short max_tokens for efficiency)
+        result = self.client.chat(
+            "claude-opus",
+            formatting_prompt,
+            temperature=0.3,
+            max_tokens=1000
+        )
+
+        if result["success"]:
+            return result["content"].strip()
+        else:
+            # If Opus formatting fails, return the cleaned content
+            return raw_content
 
     def _save_session(self, session: DebateSession):
         """Save session to JSON file."""
