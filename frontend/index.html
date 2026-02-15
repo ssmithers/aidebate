@@ -26,29 +26,38 @@
         <!-- Setup Panel (shown on load) -->
         <div id="setup-panel" class="setup-panel">
             <div class="setup-card">
-                <h1>Configure Your Debate</h1>
-                <p>Select two AI models to debate a topic of your choice. You'll act as the moderator.</p>
-                
+                <h1>Configure Policy Debate</h1>
+                <p>Formal policy debate structure with constructive speeches, cross-examinations, and rebuttals.</p>
+
                 <div class="form-group">
                     <label for="topic-input">Debate Topic:</label>
-                    <input type="text" id="topic-input" class="input-field" 
+                    <input type="text" id="topic-input" class="input-field"
                            placeholder="e.g., Universal basic income is beneficial for society">
                 </div>
 
                 <div class="model-selection">
                     <div class="form-group">
-                        <label for="model1-select">Model 1 (Pro):</label>
+                        <label for="model1-select">Model 1:</label>
                         <select id="model1-select" class="input-field">
                             <option value="">Loading models...</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="model2-select">Model 2 (Con):</label>
+                        <label for="model2-select">Model 2:</label>
                         <select id="model2-select" class="input-field">
                             <option value="">Loading models...</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="position-select">Model 1 Speaker Position:</label>
+                    <select id="position-select" class="input-field">
+                        <option value="2A/1N">2A/1N (2nd Aff, 1st Neg)</option>
+                        <option value="2N/1A">2N/1A (2nd Neg, 1st Aff)</option>
+                    </select>
+                    <small style="color: #6c757d;">Model 2 will automatically be assigned the opposite position</small>
                 </div>
 
                 <button id="start-debate-btn" class="btn btn-primary" disabled>Start Debate</button>
@@ -60,8 +69,16 @@
             <div class="debate-header">
                 <h2 id="debate-topic" class="debate-topic"></h2>
                 <div class="model-badges">
-                    <span class="model-badge pro" id="pro-model-badge"></span>
-                    <span class="model-badge con" id="con-model-badge"></span>
+                    <span class="model-badge aff" id="aff-model-badge"></span>
+                    <span class="model-badge neg" id="neg-model-badge"></span>
+                </div>
+                <div class="speech-indicator">
+                    <strong>Current Speech:</strong> <span id="current-speech-name">1AC</span>
+                    <span class="speech-type-badge" id="speech-type-badge">Constructive</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                    <span class="progress-text" id="progress-text">Speech 1 of 16</span>
                 </div>
             </div>
 
@@ -73,13 +90,13 @@
             <!-- Moderator Controls -->
             <div class="moderator-controls">
                 <div class="control-row">
-                    <textarea id="moderator-input" class="input-field" 
-                              placeholder="Ask a question or provide direction (optional)..." 
+                    <textarea id="moderator-input" class="input-field"
+                              placeholder="Optional: Interject with a comment or redirect..."
                               rows="2"></textarea>
                     <div class="button-group">
-                        <button id="send-btn" class="btn btn-primary">Send Question</button>
-                        <button id="continue-btn" class="btn btn-secondary">Continue Debate</button>
-                        <button id="end-topic-btn" class="btn btn-danger">End Topic</button>
+                        <button id="interject-btn" class="btn btn-secondary">Interject</button>
+                        <button id="continue-btn" class="btn btn-primary">Next Speech</button>
+                        <button id="end-topic-btn" class="btn btn-danger">End Debate</button>
                     </div>
                 </div>
             </div>

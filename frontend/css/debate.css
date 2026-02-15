@@ -198,14 +198,66 @@ body {
   font-size: 0.9rem;
 }
 
-.model-badge.pro {
+.model-badge.aff {
   background-color: #4a90e2;
   color: white;
 }
 
-.model-badge.con {
+.model-badge.neg {
   background-color: #e94560;
   color: white;
+}
+
+/* Speech Indicator */
+.speech-indicator {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: rgba(74, 144, 226, 0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.speech-type-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  background-color: #6c757d;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Progress Bar */
+.progress-bar {
+  margin-top: 1rem;
+  position: relative;
+  height: 30px;
+  background-color: rgba(108, 117, 125, 0.2);
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+  transition: width 0.3s ease;
+  border-radius: 15px;
+}
+
+.progress-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  z-index: 1;
 }
 
 /* Conversation Window */
@@ -226,11 +278,13 @@ body {
   border-left: 4px solid;
 }
 
+.message.aff,
 .message.pro {
   border-left-color: #4a90e2;
   background-color: rgba(74, 144, 226, 0.1);
 }
 
+.message.neg,
 .message.con {
   border-left-color: #e94560;
   background-color: rgba(233, 69, 96, 0.1);

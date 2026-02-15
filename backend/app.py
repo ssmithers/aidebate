@@ -50,27 +50,32 @@ def get_models():
 @app.route('/api/debate/start', methods=['POST'])
 def start_debate():
     """
-    Start a new debate.
-    
-    Request: {topic, model1, model2, pro_model}
-    Response: {session_id, topic, models: {pro, con}}
+    Start a new policy debate.
+
+    Request: {topic, model1, model2, model1_position}
+    Response: {session_id, topic, models, speaker_positions, current_speech}
     """
     data = request.json
-    
+
     topic = data.get('topic')
     model1 = data.get('model1')
     model2 = data.get('model2')
-    pro_model = data.get('pro_model', 'model1')
-    
+    model1_position = data.get('model1_position', '2A/1N')
+
     if not all([topic, model1, model2]):
         return jsonify({'error': 'Missing required fields'}), 400
-    
+
     try:
-        session = debate_manager.start_debate(topic, model1, model2, pro_model)
+        session = debate_manager.start_debate(topic, model1, model2, model1_position)
+        current_speech = session.debate_flow[session.current_speech_index]
+
         return jsonify({
             'session_id': session.session_id,
             'topic': session.topic,
-            'models': session.models
+            'models': session.models,
+            'speaker_positions': session.speaker_positions,
+            'debate_flow': session.debate_flow,
+            'current_speech': current_speech
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -79,24 +84,37 @@ def start_debate():
 @app.route('/api/debate/turn', methods=['POST'])
 def execute_turn():
     """
-    Execute one debate turn.
-    
-    Request: {session_id, moderator_message?}
-    Response: {turn_id, responses: [{model, stance, content, citations, latency_ms}]}
+    Execute one speech in policy debate.
+
+    Request: {session_id, moderator_message?, is_interjection?}
+    Response: {turn_id, speech_type, speech_name, speaker_position, responses, next_speech}
     """
     data = request.json
-    
+
     session_id = data.get('session_id')
     moderator_message = data.get('moderator_message')
-    
+    is_interjection = data.get('is_interjection', False)
+
     if not session_id:
         return jsonify({'error': 'Missing session_id'}), 400
-    
+
     try:
-        turn = debate_manager.execute_turn(session_id, moderator_message)
+        turn = debate_manager.execute_turn(session_id, moderator_message, is_interjection)
+
+        # Get next speech info
+        session = debate_manager._load_session(session_id)
+        next_speech = None
+        if session.current_speech_index < len(session.debate_flow):
+            next_speech = session.debate_flow[session.current_speech_index]
+
         return jsonify({
             'turn_id': turn.turn_id,
-            'responses': [r.model_dump() for r in turn.responses]
+            'speech_type': turn.speech_type,
+            'speech_name': turn.speech_name,
+            'speaker_position': turn.speaker_position,
+            'responses': [r.model_dump() for r in turn.responses],
+            'next_speech': next_speech,
+            'debate_complete': session.current_speech_index >= len(session.debate_flow)
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

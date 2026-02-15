@@ -1,18 +1,17 @@
 /**
- * UI rendering functions for debate interface
+ * UI rendering functions for policy debate interface
  */
 const DebateUI = {
     /**
-     * Render a debate message
-     * @param {Object} message - Message object from API
-     * @returns {string} HTML string
+     * Render a policy debate message
      */
-    renderMessage(message) {
-        const { model_alias, stance, content, citations, latency_ms } = message;
+    renderMessage(message, speechName, speechType) {
+        const { model_alias, stance, speaker_position, content, citations, latency_ms } = message;
         
         const latencySec = (latency_ms / 1000).toFixed(1);
-        const stanceLabel = stance === 'pro' ? 'PRO' : 'CON';
-        const modelLabel = stance === 'pro' ? 'Model 1' : 'Model 2';
+        const stanceLabel = stance === 'aff' ? 'AFF' : 'NEG';
+        
+        const speechTypeLabel = this.getSpeechTypeLabel(speechType);
         
         const citationsHTML = citations.length > 0 
             ? `<div class="citations">
@@ -24,8 +23,8 @@ const DebateUI = {
         return `
             <div class="message ${stance}">
                 <div class="message-header">
-                    <span>${modelLabel} (${stanceLabel}): ${model_alias}</span>
-                    <span class="message-meta">${latencySec}s</span>
+                    <span><strong>${speechName}</strong> - ${speaker_position} (${stanceLabel}): ${model_alias}</span>
+                    <span class="message-meta">${latencySec}s • ${speechTypeLabel}</span>
                 </div>
                 <div class="message-content">${content}</div>
                 ${citationsHTML}
@@ -33,16 +32,24 @@ const DebateUI = {
         `;
     },
 
+    getSpeechTypeLabel(type) {
+        const labels = {
+            'constructive': 'Constructive',
+            'cx_question': 'Cross-Ex Question',
+            'cx_answer': 'Cross-Ex Answer',
+            'rebuttal': 'Rebuttal'
+        };
+        return labels[type] || type;
+    },
+
     /**
      * Render a moderator message
-     * @param {string} content - Message content
-     * @returns {string} HTML string
      */
     renderModeratorMessage(content) {
         return `
             <div class="message moderator">
                 <div class="message-header">
-                    <span>Moderator</span>
+                    <span>Moderator Interjection</span>
                 </div>
                 <div class="message-content">${content}</div>
             </div>
@@ -50,8 +57,34 @@ const DebateUI = {
     },
 
     /**
+     * Update current speech display
+     */
+    updateSpeechIndicator(speechName, speechType) {
+        document.getElementById('current-speech-name').textContent = speechName;
+        const badge = document.getElementById('speech-type-badge');
+        badge.textContent = this.getSpeechTypeLabel(speechType);
+        
+        // Color code by type
+        if (speechType === 'constructive') {
+            badge.style.backgroundColor = '#4a90e2';
+        } else if (speechType.startsWith('cx')) {
+            badge.style.backgroundColor = '#ff8c42';
+        } else if (speechType === 'rebuttal') {
+            badge.style.backgroundColor = '#e94560';
+        }
+    },
+
+    /**
+     * Update progress bar
+     */
+    updateProgress(currentIndex, total) {
+        const percentage = ((currentIndex + 1) / total) * 100;
+        document.getElementById('progress-fill').style.width = `${percentage}%`;
+        document.getElementById('progress-text').textContent = `Speech ${currentIndex + 1} of ${total}`;
+    },
+
+    /**
      * Append message to conversation window
-     * @param {string} html - Message HTML
      */
     appendMessage(html) {
         const conversationWindow = document.getElementById('conversation-window');
@@ -87,7 +120,7 @@ const DebateUI = {
      * Disable moderator controls
      */
     disableControls() {
-        document.getElementById('send-btn').disabled = true;
+        document.getElementById('interject-btn').disabled = true;
         document.getElementById('continue-btn').disabled = true;
         document.getElementById('end-topic-btn').disabled = true;
         document.getElementById('moderator-input').disabled = true;
@@ -97,7 +130,7 @@ const DebateUI = {
      * Enable moderator controls
      */
     enableControls() {
-        document.getElementById('send-btn').disabled = false;
+        document.getElementById('interject-btn').disabled = false;
         document.getElementById('continue-btn').disabled = false;
         document.getElementById('end-topic-btn').disabled = false;
         document.getElementById('moderator-input').disabled = false;
@@ -105,7 +138,6 @@ const DebateUI = {
 
     /**
      * Show error message in conversation window
-     * @param {string} error - Error message
      */
     showError(error) {
         const errorHTML = `
@@ -128,7 +160,6 @@ const DebateUI = {
 
     /**
      * Populate model dropdown
-     * @param {Array} models - Array of model objects
      */
     populateModelDropdown(models, selectId) {
         const select = document.getElementById(selectId);
@@ -140,5 +171,25 @@ const DebateUI = {
             option.textContent = `${model.name} (${model.alias})`;
             select.appendChild(option);
         });
+    },
+
+    /**
+     * Show debate complete message
+     */
+    showDebateComplete() {
+        const message = `
+            <div class="message moderator" style="background-color: rgba(74, 144, 226, 0.2); border-color: #4a90e2;">
+                <div class="message-header">
+                    <span style="color: #4a90e2;">✓ Debate Complete</span>
+                </div>
+                <div class="message-content">
+                    <strong>All speeches have been delivered!</strong><br>
+                    The policy debate has concluded. You can now export the transcript or start a new debate.
+                </div>
+            </div>
+        `;
+        this.appendMessage(message);
+        this.disableControls();
+        document.getElementById('continue-btn').textContent = 'Debate Complete';
     }
 };

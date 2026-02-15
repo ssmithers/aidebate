@@ -1,10 +1,10 @@
 /**
- * Main application logic
+ * Main application logic for policy debate
  */
 let currentSession = null;
 let debateSettings = {
     temperature: 0.3,
-    max_tokens: 16384
+    max_tokens: 512  // ~1 minute speeches
 };
 
 // Initialize app
@@ -62,8 +62,8 @@ function setupEventListeners() {
     });
 
     // Moderator controls
-    document.getElementById('send-btn').addEventListener('click', sendModeratorMessage);
-    document.getElementById('continue-btn').addEventListener('click', () => executeTurn(null));
+    document.getElementById('interject-btn').addEventListener('click', interjectInDebate);
+    document.getElementById('continue-btn').addEventListener('click', advanceToNextSpeech);
     document.getElementById('end-topic-btn').addEventListener('click', endDebate);
 
     // Settings modal
@@ -77,14 +77,6 @@ function setupEventListeners() {
     // Export button
     document.getElementById('export-btn').addEventListener('click', exportDebate);
 
-    // Enter key in moderator input
-    document.getElementById('moderator-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendModeratorMessage();
-        }
-    });
-
     // Enter key in topic input
     document.getElementById('topic-input').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -97,12 +89,13 @@ function setupEventListeners() {
 }
 
 /**
- * Start a new debate
+ * Start a new policy debate
  */
 async function startNewDebate() {
     const topic = document.getElementById('topic-input').value.trim();
     const model1 = document.getElementById('model1-select').value;
     const model2 = document.getElementById('model2-select').value;
+    const model1Position = document.getElementById('position-select').value;
 
     if (!topic || !model1 || !model2) {
         alert('Please fill in all fields');
@@ -114,14 +107,14 @@ async function startNewDebate() {
         document.getElementById('start-debate-btn').disabled = true;
         document.getElementById('start-debate-btn').textContent = 'Starting...';
 
-        // Start debate (model1 is always pro)
-        currentSession = await API.startDebate(topic, model1, model2, 'model1');
+        // Start debate
+        currentSession = await API.startDebate(topic, model1, model2, model1Position);
         
         // Show debate view
         showDebateView();
 
-        // Execute first turn
-        await executeTurn(null);
+        // Execute first speech automatically
+        await advanceToNextSpeech();
     } catch (error) {
         console.error('Failed to start debate:', error);
         alert(`Failed to start debate: ${error.message}`);
@@ -142,8 +135,8 @@ function showDebateView() {
 
     // Update header
     document.getElementById('debate-topic').textContent = currentSession.topic;
-    document.getElementById('pro-model-badge').textContent = `PRO: ${currentSession.models.pro}`;
-    document.getElementById('con-model-badge').textContent = `CON: ${currentSession.models.con}`;
+    document.getElementById('aff-model-badge').textContent = `AFF: ${currentSession.models.aff}`;
+    document.getElementById('neg-model-badge').textContent = `NEG: ${currentSession.models.neg}`;
 
     // Show header buttons
     document.getElementById('new-debate-btn').style.display = 'block';
@@ -152,51 +145,82 @@ function showDebateView() {
 
     // Clear conversation window
     DebateUI.clearConversation();
+
+    // Initialize progress
+    DebateUI.updateProgress(0, currentSession.debate_flow.length);
+    DebateUI.updateSpeechIndicator(currentSession.current_speech.speech, currentSession.current_speech.type);
 }
 
 /**
- * Execute a debate turn
- * @param {string|null} moderatorMessage - Optional moderator message
+ * Advance to next speech (auto-advance)
  */
-async function executeTurn(moderatorMessage) {
+async function advanceToNextSpeech() {
     if (!currentSession) return;
 
     try {
         DebateUI.showLoading();
 
-        // Add moderator message if provided
-        if (moderatorMessage && moderatorMessage.trim() !== '') {
-            DebateUI.appendMessage(DebateUI.renderModeratorMessage(moderatorMessage));
-        }
+        // Execute speech
+        const result = await API.nextTurn(currentSession.session_id, null, false);
 
-        // Execute turn
-        const result = await API.nextTurn(currentSession.session_id, moderatorMessage);
-
-        // Render responses
+        // Render response
         result.responses.forEach(response => {
-            DebateUI.appendMessage(DebateUI.renderMessage(response));
+            DebateUI.appendMessage(DebateUI.renderMessage(response, result.speech_name, result.speech_type));
         });
 
-        // Clear moderator input
-        document.getElementById('moderator-input').value = '';
+        // Check if debate is complete
+        if (result.debate_complete) {
+            DebateUI.showDebateComplete();
+        } else {
+            // Update UI for next speech
+            DebateUI.updateSpeechIndicator(result.next_speech.speech, result.next_speech.type);
+            DebateUI.updateProgress(
+                currentSession.debate_flow.findIndex(s => s.speech === result.next_speech.speech),
+                currentSession.debate_flow.length
+            );
+        }
     } catch (error) {
-        console.error('Failed to execute turn:', error);
-        DebateUI.showError(`Failed to execute turn: ${error.message}`);
+        console.error('Failed to execute speech:', error);
+        DebateUI.showError(`Failed to execute speech: ${error.message}`);
     } finally {
         DebateUI.hideLoading();
     }
 }
 
 /**
- * Send moderator message
+ * Moderator interjection
  */
-function sendModeratorMessage() {
+async function interjectInDebate() {
     const message = document.getElementById('moderator-input').value.trim();
     if (message === '') {
-        alert('Please enter a message');
+        alert('Please enter a message to interject');
         return;
     }
-    executeTurn(message);
+
+    if (!currentSession) return;
+
+    try {
+        DebateUI.showLoading();
+
+        // Add moderator message
+        DebateUI.appendMessage(DebateUI.renderModeratorMessage(message));
+
+        // Execute turn with interjection (doesn't advance speech index)
+        const result = await API.nextTurn(currentSession.session_id, message, true);
+
+        // Render response
+        result.responses.forEach(response => {
+            DebateUI.appendMessage(DebateUI.renderMessage(response, result.speech_name + ' (Interjection)', result.speech_type));
+        });
+
+        // Clear moderator input
+        document.getElementById('moderator-input').value = '';
+    } catch (error) {
+        console.error('Failed to interject:', error);
+        DebateUI.showError(`Failed to interject: ${error.message}`);
+    } finally {
+        DebateUI.hideLoading();
+    }
 }
 
 /**
@@ -211,8 +235,7 @@ async function endDebate() {
 
     try {
         await API.endTopic(currentSession.session_id);
-        alert('Debate ended. You can now export the transcript or start a new debate.');
-        DebateUI.disableControls();
+        DebateUI.showDebateComplete();
     } catch (error) {
         console.error('Failed to end debate:', error);
         alert(`Failed to end debate: ${error.message}`);
@@ -256,7 +279,7 @@ function saveSettings() {
     debateSettings.temperature = parseFloat(document.getElementById('temperature-input').value);
     debateSettings.max_tokens = parseInt(document.getElementById('max-tokens-input').value);
     closeSettingsModal();
-    alert('Settings saved! They will apply to future turns.');
+    alert('Settings saved! They will apply to future speeches.');
 }
 
 /**
@@ -273,7 +296,7 @@ async function exportDebate() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `debate-${currentSession.session_id}.json`;
+        a.download = `policy-debate-${currentSession.session_id}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

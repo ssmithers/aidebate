@@ -1,5 +1,5 @@
 /**
- * API wrapper for debate backend
+ * API wrapper for policy debate backend
  */
 const API = {
     baseURL: 'http://localhost:5000/api',
@@ -12,7 +12,7 @@ const API = {
         return response.json();
     },
 
-    async startDebate(topic, model1, model2, proModel) {
+    async startDebate(topic, model1, model2, model1Position) {
         const response = await fetch(`${this.baseURL}/debate/start`, {
             method: 'POST',
             headers: {
@@ -22,7 +22,7 @@ const API = {
                 topic,
                 model1,
                 model2,
-                pro_model: proModel
+                model1_position: model1Position
             })
         });
 
@@ -34,7 +34,7 @@ const API = {
         return response.json();
     },
 
-    async nextTurn(sessionId, moderatorMessage = null) {
+    async nextTurn(sessionId, moderatorMessage = null, isInterjection = false) {
         const response = await fetch(`${this.baseURL}/debate/turn`, {
             method: 'POST',
             headers: {
@@ -42,7 +42,8 @@ const API = {
             },
             body: JSON.stringify({
                 session_id: sessionId,
-                moderator_message: moderatorMessage
+                moderator_message: moderatorMessage,
+                is_interjection: isInterjection
             })
         });
 
