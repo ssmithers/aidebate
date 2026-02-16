@@ -2,10 +2,10 @@
 ## Automated Argumentation Processing System
 
 **Date of Disclosure:** February 15, 2026
-**Inventor:** [Your Name]
+**Inventor:** Stephen F Smithers
 **Repository:** https://github.com/ssmithers/aidebate
 **Baseline Commit:** v1.0-pre-patent-baseline
-**Patent Commits:** 4a9d1f5, 1fd1cc1
+**Patent Commits:** 4a9d1f5, 1fd1cc1, 25cc6ba
 
 ---
 
@@ -36,6 +36,10 @@ I, the undersigned inventor, hereby declare that this document contains a true a
 ---
 
 # EXECUTIVE SUMMARY
+
+**Inventor:** Stephen F Smithers
+**Invention Title:** Automated Argumentation Processing System
+**Date of Invention:** February 15, 2026
 
 This disclosure describes an "Automated Argumentation Processing System" comprising four (4) novel technical innovations that transform abstract social features (voting, ranking) into patentable technical implementations.
 
@@ -1521,7 +1525,7 @@ aidebate/
 
 # SIGNATURE PAGE
 
-I, the undersigned, declare under penalty of perjury that:
+I, Stephen F Smithers, declare under penalty of perjury that:
 
 1. I am the sole inventor of the "Automated Argumentation Processing System" described herein.
 2. This disclosure is true, complete, and accurate to the best of my knowledge as of February 15, 2026.
@@ -1529,15 +1533,16 @@ I, the undersigned, declare under penalty of perjury that:
 4. I have conducted a reasonable prior art search and believe this invention to be novel and non-obvious.
 5. All code for the patent-focused features (433 lines) was generated using local AI models (GLM-Flash) to preserve confidentiality.
 
-**Inventor Name:** ______________________________
+**Inventor Name:** Stephen F Smithers
 
-**Signature:** ______________________________
+**Inventor Signature:** ________________________________________
 
 **Date:** ______________________________
 
-**Witness Name:** ______________________________
 
-**Witness Signature:** ______________________________
+**Witness Name:** ________________________________________
+
+**Witness Signature:** ________________________________________
 
 **Date:** ______________________________
 
@@ -1545,22 +1550,26 @@ I, the undersigned, declare under penalty of perjury that:
 
 # NOTARY ACKNOWLEDGMENT
 
-**State of:** ______________________________
+**State of:** ________________________________________
 
-**County of:** ______________________________
+**County of:** ________________________________________
 
-On this ______ day of _____________, 2026, before me, a Notary Public, personally appeared ______________________________, known to me to be the person whose name is subscribed to the foregoing instrument, and acknowledged that they executed the same for the purposes therein contained.
+On this ______ day of _____________, 2026, before me, a Notary Public, personally appeared **Stephen F Smithers**, known to me (or proved to me on the basis of satisfactory evidence) to be the person whose name is subscribed to the foregoing instrument, and acknowledged that he executed the same for the purposes therein contained.
 
-**Notary Public Signature:** ______________________________
+**Notary Public Signature:** ________________________________________
 
-**Notary Public Name (Printed):** ______________________________
+**Notary Public Name (Printed):** ________________________________________
 
-**Commission Expiration Date:** ______________________________
+**My Commission Expires:** ________________________________________
 
-**Notary Seal:**
+**Notary Seal/Stamp:**
+[SPACE FOR OFFICIAL NOTARY SEAL]
 
 ---
 
 **END OF PATENT DISCLOSURE DOCUMENT**
 
-*This document contains 4 novel technical innovations supported by 3,628 lines of working code, comprehensive prior art analysis, and enablement instructions. It satisfies all 5 requirements for U.S. patent eligibility (§101, §102, §103, §112) and establishes February 15, 2026 as the date of invention.*
+*Inventor: Stephen F Smithers*
+*Date: February 15, 2026*
+
+*This document contains 4 novel technical innovations supported by 3,628 lines of working code, comprehensive prior art analysis, and enablement instructions. It satisfies all 5 requirements for U.S. patent eligibility (§101, §102, §103, §112) and establishes February 15, 2026 as the date of invention by Stephen F Smithers.*
