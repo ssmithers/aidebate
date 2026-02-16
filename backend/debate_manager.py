@@ -273,9 +273,9 @@ class DebateManager:
     
     def _strip_thinking_blocks(self, text: str) -> str:
         """
-        Remove obvious thinking blocks from model output.
+        Remove thinking blocks from model output.
 
-        Keep this simple - Opus formatting will handle the rest.
+        GLM-Flash outputs heavy thinking blocks - we need to find actual debate content.
         """
         import re
 
@@ -285,28 +285,35 @@ class DebateManager:
         # Pattern 2: Remove everything before </think> tag
         cleaned = re.sub(r'^.*?</think>\s*', '', cleaned, flags=re.DOTALL)
 
-        # Pattern 3: Remove numbered thinking headers at the start
-        # Example: "1. **Analyze the Request:**"
-        # Strategy: Remove blocks of consecutive numbered headers
+        # Pattern 3: Find numbered thinking sections and locate actual content after them
         lines = cleaned.split('\n')
-        start_index = 0
 
-        # Skip leading numbered headers like "1. **Title:**" or "2. **Another:**"
+        # Find the LAST numbered thinking header (e.g., "5. **Final Output:**")
         thinking_header_pattern = r'^\s*\d+\.\s*\*\*[^*]+\*\*'
+        last_thinking_header_index = -1
 
         for i, line in enumerate(lines):
-            stripped = line.strip()
-            # If line is a thinking header or bullet point under a header
-            if re.match(thinking_header_pattern, stripped) or (stripped.startswith('*') and i < 10):
-                continue
-            # Found first non-thinking line
-            if stripped:
-                start_index = i
-                break
+            if re.match(thinking_header_pattern, line.strip()):
+                last_thinking_header_index = i
 
-        # Keep everything from first real content line onward
-        if start_index > 0:
-            cleaned = '\n'.join(lines[start_index:])
+        # If we found thinking headers, look for substantial content after the last one
+        if last_thinking_header_index >= 0:
+            # Look for the first substantial paragraph (>40 chars, not a bullet point)
+            for i in range(last_thinking_header_index + 1, len(lines)):
+                line = lines[i].strip()
+                # Skip empty lines, bullets, and sub-headers
+                if not line or line.startswith('*') or line.startswith('-') or re.match(r'^\d+\.', line):
+                    continue
+                # Found substantial content (likely the actual debate speech)
+                if len(line) > 40:
+                    cleaned = '\n'.join(lines[i:])
+                    break
+            else:
+                # Fallback: take everything after the last thinking header
+                cleaned = '\n'.join(lines[last_thinking_header_index + 1:])
+
+        # Pattern 4: Remove any remaining asterisk bullets at the start
+        cleaned = re.sub(r'^[\s*-]+', '', cleaned, flags=re.MULTILINE)
 
         return cleaned.strip()
 
