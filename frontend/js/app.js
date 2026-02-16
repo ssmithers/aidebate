@@ -304,20 +304,28 @@ function saveSettings() {
 }
 
 /**
- * Export debate as JSON
+ * Export debate as Markdown transcript
  */
 async function exportDebate() {
     if (!currentSession) return;
 
     try {
-        const history = await API.getHistory(currentSession.session_id);
-        const json = JSON.stringify(history, null, 2);
-        
-        const blob = new Blob([json], { type: 'application/json' });
+        const response = await fetch(`http://localhost:5000/api/debate/export/${currentSession.session_id}`);
+        const markdown = await response.text();
+
+        const blob = new Blob([markdown], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `policy-debate-${currentSession.session_id}.json`;
+
+        // Create filename from topic (sanitized)
+        const topicSlug = currentSession.topic
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '')
+            .substring(0, 50);
+
+        a.download = `debate-${topicSlug}.md`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

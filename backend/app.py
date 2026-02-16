@@ -164,6 +164,81 @@ def get_history(session_id):
         return jsonify({'error': str(e)}), 404
 
 
+@app.route('/api/debate/export/<session_id>', methods=['GET'])
+def export_debate_markdown(session_id):
+    """
+    Export debate as markdown transcript with legend.
+
+    Response: markdown text
+    """
+    try:
+        session = debate_manager._load_session(session_id)
+
+        # Build markdown transcript
+        md = f"# Policy Debate Transcript\n\n"
+        md += f"**Topic**: {session.topic}\n\n"
+        md += f"**Affirmative Model**: {session.models.get('aff', 'Unknown')}\n"
+        md += f"**Negative Model**: {session.models.get('neg', 'Unknown')}\n\n"
+        md += "---\n\n"
+
+        # Legend
+        md += "## Legend\n\n"
+        md += "### Speech Types\n"
+        md += "- **Constructive**: Opening arguments presenting the case\n"
+        md += "- **Cross-Examination (CX)**: Question period where opponent challenges arguments\n"
+        md += "- **Rebuttal**: Closing arguments refuting opponent's case\n\n"
+
+        md += "### Speech Labels\n"
+        md += "- **1AC**: First Affirmative Constructive\n"
+        md += "- **1NC**: First Negative Constructive\n"
+        md += "- **2AC**: Second Affirmative Constructive\n"
+        md += "- **2NC**: Second Negative Constructive\n"
+        md += "- **1NR**: First Negative Rebuttal\n"
+        md += "- **1AR**: First Affirmative Rebuttal\n"
+        md += "- **2NR**: Second Negative Rebuttal\n"
+        md += "- **2AR**: Second Affirmative Rebuttal\n"
+        md += "- **CX by [Speaker]**: Cross-examination question\n"
+        md += "- **Answer by [Speaker]**: Cross-examination response\n\n"
+
+        md += "### Speaker Positions\n"
+        md += "- **1A/2A**: First/Second Affirmative Speaker\n"
+        md += "- **1N/2N**: First/Second Negative Speaker\n\n"
+
+        md += "---\n\n"
+        md += "## Transcript\n\n"
+
+        # Transcript
+        for turn in session.turns:
+            # Moderator message
+            if turn.moderator_message:
+                md += f"### [Moderator]\n\n"
+                md += f"{turn.moderator_message}\n\n"
+
+            # Speech
+            for response in turn.responses:
+                speech_label = turn.speech_name
+                stance_label = "Affirmative" if response.stance == "aff" else "Negative"
+
+                md += f"### {speech_label} ({stance_label})\n\n"
+                md += f"**Speaker**: {response.speaker_position}\n"
+                md += f"**Model**: {response.model_alias}\n\n"
+                md += f"{response.content}\n\n"
+
+                # Citations
+                if response.citations:
+                    md += "**Sources**:\n"
+                    for i, citation in enumerate(response.citations, 1):
+                        md += f"{i}. {citation.get('text', 'Unknown source')}\n"
+                    md += "\n"
+
+                md += "---\n\n"
+
+        return md, 200, {'Content-Type': 'text/markdown; charset=utf-8'}
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
+
+
 @app.route('/api/debate/usage/<session_id>', methods=['GET'])
 def get_usage_report(session_id):
     """
