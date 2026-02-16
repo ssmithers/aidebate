@@ -76,7 +76,7 @@ class DebateManager:
             current_speech_index=0,
             debate_flow=debate_flow,
             turns=[],
-            settings={"temperature": 0.3, "max_tokens": 2048},  # 4 min speeches
+            settings={"temperature": 0.3, "max_tokens": 16384},  # Allow full-length arguments
             status="active"
         )
 

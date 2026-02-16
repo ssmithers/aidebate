@@ -4,7 +4,7 @@
 let currentSession = null;
 let debateSettings = {
     temperature: 0.3,
-    max_tokens: 2048  // 4 minute speeches - full arguments
+    max_tokens: 16384  // Allow full-length debate arguments without truncation
 };
 
 // Initialize app
