@@ -12,7 +12,7 @@ const API = {
         return response.json();
     },
 
-    async startDebate(topic, model1, model2, model1Position) {
+    async startDebate(topic, model1, model2, model1Position, numSpeeches = 16) {
         const response = await fetch(`${this.baseURL}/debate/start`, {
             method: 'POST',
             headers: {
@@ -22,7 +22,8 @@ const API = {
                 topic,
                 model1,
                 model2,
-                model1_position: model1Position
+                model1_position: model1Position,
+                num_speeches: numSpeeches
             })
         });
 

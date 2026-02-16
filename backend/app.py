@@ -53,7 +53,7 @@ def start_debate():
     """
     Start a new policy debate.
 
-    Request: {topic, model1, model2, model1_position}
+    Request: {topic, model1, model2, model1_position, num_speeches}
     Response: {session_id, topic, models, speaker_positions, current_speech}
     """
     data = request.json
@@ -62,12 +62,13 @@ def start_debate():
     model1 = data.get('model1')
     model2 = data.get('model2')
     model1_position = data.get('model1_position', '2A/1N')
+    num_speeches = data.get('num_speeches', 16)
 
     if not all([topic, model1, model2]):
         return jsonify({'error': 'Missing required fields'}), 400
 
     try:
-        session = debate_manager.start_debate(topic, model1, model2, model1_position)
+        session = debate_manager.start_debate(topic, model1, model2, model1_position, num_speeches)
         current_speech = session.debate_flow[session.current_speech_index]
 
         return jsonify({

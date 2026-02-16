@@ -35,7 +35,7 @@ class DebateManager:
             {"speech": "2AR", "type": "rebuttal", "side": "aff", "speaker": "2A", "duration": 60},
         ]
 
-    def start_debate(self, topic: str, model1: str, model2: str, model1_position: str) -> DebateSession:
+    def start_debate(self, topic: str, model1: str, model2: str, model1_position: str, num_speeches: int = 16) -> DebateSession:
         """
         Create a new policy debate session.
 
@@ -44,6 +44,7 @@ class DebateManager:
             model1: First model alias
             model2: Second model alias
             model1_position: Speaker position for model1 ("2A/1N" or "2N/1A")
+            num_speeches: Number of speeches (8, 12, or 16)
 
         Returns:
             DebateSession object
@@ -60,6 +61,12 @@ class DebateManager:
             models = {"aff": model2, "neg": model1}
             speaker_positions = {"model1": "2N/1A", "model2": "2A/1N"}
 
+        # Generate debate flow based on num_speeches
+        # 8 speeches = constructives + cross-ex (first 12 items)
+        # 12 speeches = constructives + cross-ex + 1NR/1AR (first 14 items)
+        # 16 speeches = full policy debate (all items)
+        debate_flow = self.policy_debate_flow[:num_speeches]
+
         session = DebateSession(
             session_id=session_id,
             topic=topic,
@@ -67,7 +74,7 @@ class DebateManager:
             models=models,
             speaker_positions=speaker_positions,
             current_speech_index=0,
-            debate_flow=self.policy_debate_flow,
+            debate_flow=debate_flow,
             turns=[],
             settings={"temperature": 0.3, "max_tokens": 512},  # ~1 min response
             status="active"

@@ -4,7 +4,8 @@
 let currentSession = null;
 let debateSettings = {
     temperature: 0.3,
-    max_tokens: 512  // ~1 minute speeches
+    max_tokens: 512,  // ~1 minute speeches
+    num_speeches: 16  // Full policy debate
 };
 
 // Initialize app
@@ -107,8 +108,8 @@ async function startNewDebate() {
         document.getElementById('start-debate-btn').disabled = true;
         document.getElementById('start-debate-btn').textContent = 'Starting...';
 
-        // Start debate
-        currentSession = await API.startDebate(topic, model1, model2, model1Position);
+        // Start debate with current settings
+        currentSession = await API.startDebate(topic, model1, model2, model1Position, debateSettings.num_speeches);
 
         // Show debate view
         showDebateView();
@@ -274,6 +275,7 @@ function resetToSetup() {
 function openSettingsModal() {
     document.getElementById('temperature-input').value = debateSettings.temperature;
     document.getElementById('max-tokens-input').value = debateSettings.max_tokens;
+    document.getElementById('num-speeches-input').value = debateSettings.num_speeches;
     document.getElementById('settings-modal').style.display = 'block';
 }
 
@@ -290,8 +292,9 @@ function closeSettingsModal() {
 function saveSettings() {
     debateSettings.temperature = parseFloat(document.getElementById('temperature-input').value);
     debateSettings.max_tokens = parseInt(document.getElementById('max-tokens-input').value);
+    debateSettings.num_speeches = parseInt(document.getElementById('num-speeches-input').value);
     closeSettingsModal();
-    alert('Settings saved! They will apply to future speeches.');
+    alert('Settings saved! They will apply to new debates (current debate will continue with original settings).');
 }
 
 /**

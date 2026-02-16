@@ -120,13 +120,33 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="temperature-input">Temperature (0.0 - 1.0):</label>
-                    <input type="number" id="temperature-input" class="input-field" 
+                    <input type="number" id="temperature-input" class="input-field"
                            value="0.3" min="0" max="1" step="0.1">
+                    <p style="font-size: 0.85rem; color: #6c757d; margin-top: 0.25rem;">
+                        Controls randomness in responses. Lower = more focused and consistent. Higher = more creative and varied.
+                        <strong>Recommended: 0.3</strong> for debates.
+                    </p>
                 </div>
                 <div class="form-group">
-                    <label for="max-tokens-input">Max Tokens:</label>
-                    <input type="number" id="max-tokens-input" class="input-field" 
-                           value="16384" min="512" max="32768" step="512">
+                    <label for="max-tokens-input">Max Tokens (Speech Length):</label>
+                    <input type="number" id="max-tokens-input" class="input-field"
+                           value="512" min="128" max="2048" step="128">
+                    <p style="font-size: 0.85rem; color: #6c757d; margin-top: 0.25rem;">
+                        Maximum length of each speech. ~512 tokens ≈ 1 minute.
+                        <strong>512 = 1 min</strong>, 1024 = 2 min, 2048 = 4 min.
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label for="num-speeches-input">Number of Speeches:</label>
+                    <select id="num-speeches-input" class="input-field">
+                        <option value="8">8 Speeches (Constructives + Cross-Ex Only)</option>
+                        <option value="12">12 Speeches (Constructives + Cross-Ex + 1st Rebuttals)</option>
+                        <option value="16" selected>16 Speeches (Full Policy Debate)</option>
+                    </select>
+                    <p style="font-size: 0.85rem; color: #6c757d; margin-top: 0.25rem;">
+                        Controls debate length. <strong>8</strong> = Quick debate (constructives only),
+                        <strong>12</strong> = Medium (includes 1NR/1AR), <strong>16</strong> = Full (all rebuttals).
+                    </p>
                 </div>
             </div>
             <div class="modal-footer">
