@@ -103,13 +103,21 @@ async function startNewDebate() {
         return;
     }
 
+    // Read settings from form
+    const temperature = parseFloat(document.getElementById('temperature-input').value);
+    const maxTokens = parseInt(document.getElementById('max-tokens-input').value);
+    const numSpeeches = parseInt(document.getElementById('num-speeches-input').value);
+
+    // Update debateSettings for this session
+    debateSettings = { temperature, max_tokens: maxTokens, num_speeches: numSpeeches };
+
     try {
         // Show loading
         document.getElementById('start-debate-btn').disabled = true;
         document.getElementById('start-debate-btn').textContent = 'Starting...';
 
-        // Start debate with current settings
-        currentSession = await API.startDebate(topic, model1, model2, model1Position, debateSettings.num_speeches);
+        // Start debate with settings from form
+        currentSession = await API.startDebate(topic, model1, model2, model1Position, numSpeeches);
 
         // Show debate view
         showDebateView();
@@ -151,9 +159,8 @@ function showDebateView() {
     document.getElementById('aff-model-badge').textContent = `AFF: ${currentSession.models.aff}`;
     document.getElementById('neg-model-badge').textContent = `NEG: ${currentSession.models.neg}`;
 
-    // Show header buttons
+    // Show header buttons (settings now on main screen)
     document.getElementById('new-debate-btn').style.display = 'block';
-    document.getElementById('settings-btn').style.display = 'block';
     document.getElementById('export-btn').style.display = 'block';
 
     // Clear conversation window
