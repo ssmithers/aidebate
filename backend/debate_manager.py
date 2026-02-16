@@ -138,9 +138,21 @@ class DebateManager:
 
         # Process response
         if result["success"]:
+            # DEBUG: Log raw output from model
+            raw_output = result["content"]
+            print(f"\n[DEBUG] Raw output from {model_alias} ({current_speech['speech']}):")
+            print(f"Length: {len(raw_output)} chars")
+            print(f"First 200 chars: {raw_output[:200]}")
+            print(f"Last 200 chars: {raw_output[-200:]}\n")
+
             # Use Haiku for formatting (cheap, effective, uses subscription credits first)
             # 60x cheaper than Opus, perfect for cleaning tasks
-            formatted_content, formatting_usage = self._format_with_haiku(result["content"], current_speech)
+            formatted_content, formatting_usage = self._format_with_haiku(raw_output, current_speech)
+
+            # DEBUG: Log after formatting
+            print(f"[DEBUG] After formatting:")
+            print(f"Length: {len(formatted_content)} chars")
+            print(f"Content: {formatted_content[:200]}\n")
 
             # Log formatting usage
             if formatting_usage:
@@ -440,43 +452,48 @@ class DebateManager:
         Returns:
             tuple of (formatted_content, usage_info)
         """
-        # IMPORTANT: Pre-clean with regex FIRST to remove obvious thinking blocks
-        # This reduces noise before sending to Haiku
-        pre_cleaned = self._strip_thinking_blocks(raw_content)
-
-        # If pre-cleaning resulted in very short content, it might be all thinking blocks
-        if len(pre_cleaned.strip()) < 50:
-            print(f"[Haiku] Warning: Pre-cleaned content too short ({len(pre_cleaned)} chars), using fallback")
-            return pre_cleaned, None
-
+        # SKIP pre-cleaning - Haiku is smart enough to extract content from thinking blocks
+        # The regex-based _strip_thinking_blocks() was too aggressive and removed actual content
         speech_type = current_speech["type"]
 
         # Build formatting instruction
         if speech_type == "constructive":
             instruction = (
-                "Polish this debate argument for readability. "
-                "Format as clear paragraphs with proper structure. "
-                "Keep all [Source: ...] citations intact."
+                "Extract and polish the actual debate argument from this text. "
+                "The text may contain thinking/reasoning blocks that you should IGNORE. "
+                "Look for the actual debate speech content and format it as clear paragraphs. "
+                "Keep all [Source: ...] citations intact. "
+                "Output ONLY the formatted debate argument, nothing else."
             )
         elif speech_type == "cx_question":
             instruction = (
-                "Format this cross-examination question clearly as 1-2 direct sentences."
+                "Extract the actual cross-examination question from this text. "
+                "The text may contain thinking/reasoning blocks that you should IGNORE. "
+                "Format the question as 1-2 direct, clear sentences. "
+                "Output ONLY the formatted question, nothing else."
             )
         elif speech_type == "cx_answer":
             instruction = (
-                "Format this cross-examination answer as 1-2 clear, concise paragraphs."
+                "Extract the actual cross-examination answer from this text. "
+                "The text may contain thinking/reasoning blocks that you should IGNORE. "
+                "Format the answer as 1-2 clear, concise paragraphs. "
+                "Output ONLY the formatted answer, nothing else."
             )
         elif speech_type == "rebuttal":
             instruction = (
-                "Polish this rebuttal for readability. "
-                "Format as clear paragraphs with proper structure. "
-                "Keep all [Source: ...] citations intact."
+                "Extract and polish the actual rebuttal from this text. "
+                "The text may contain thinking/reasoning blocks that you should IGNORE. "
+                "Look for the actual debate speech content and format it as clear paragraphs. "
+                "Keep all [Source: ...] citations intact. "
+                "Output ONLY the formatted rebuttal, nothing else."
             )
         elif speech_type == "closing":
             instruction = (
-                "Polish this closing argument for maximum impact. "
-                "Format as clear, powerful paragraphs. "
-                "Keep all [Source: ...] citations intact."
+                "Extract and polish the actual closing argument from this text. "
+                "The text may contain thinking/reasoning blocks that you should IGNORE. "
+                "Format as clear, powerful paragraphs for maximum impact. "
+                "Keep all [Source: ...] citations intact. "
+                "Output ONLY the formatted closing argument, nothing else."
             )
         else:
             # Fallback for any other speech type
@@ -496,7 +513,7 @@ class DebateManager:
                 temperature=0.3,
                 messages=[{
                     "role": "user",
-                    "content": f"{instruction}\n\nContent to format:\n\n{pre_cleaned}"
+                    "content": f"{instruction}\n\nContent to format:\n\n{raw_content}"
                 }]
             )
 
