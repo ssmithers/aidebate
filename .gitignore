@@ -30,3 +30,6 @@ logs/
 *.tmp
 .cache/
 sessions/
+
+# Database files
+*.db

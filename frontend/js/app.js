@@ -7,19 +7,52 @@ let debateSettings = {
     max_tokens: 16384  // Allow full-length debate arguments without truncation
 };
 
+/**
+ * Safely bind an event listener to an element by ID.
+ * Returns the element if found, null if not (no error thrown).
+ */
+function bindElement(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener(event, handler);
+    } else {
+        console.debug(`[UI] Element #${id} not found — skipping binding`);
+    }
+    return el;
+}
+
+/**
+ * Safely show an element by ID
+ */
+function showElement(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'block';
+}
+
+/**
+ * Safely hide an element by ID
+ */
+function hideElement(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // Setup event listeners first (validates required UI elements)
+        if (!setupEventListeners()) {
+            alert('Failed to initialize UI: required elements are missing');
+            return;
+        }
+
         // Load available models
         const { models } = await API.getModels();
         DebateUI.populateModelDropdown(models, 'model1-select');
         DebateUI.populateModelDropdown(models, 'model2-select');
-        
+
         // Enable start button when all fields are filled
         setupFormValidation();
-        
-        // Setup event listeners
-        setupEventListeners();
     } catch (error) {
         console.error('Failed to initialize app:', error);
         alert('Failed to load models. Please ensure the backend server is running.');
@@ -49,52 +82,40 @@ function setupFormValidation() {
 
 /**
  * Setup event listeners
+ * Returns false if required elements are missing
  */
 function setupEventListeners() {
-    // Configure Debate button (show setup panel)
-    document.getElementById('configure-debate-btn').addEventListener('click', () => {
-        document.getElementById('landing-page').style.display = 'none';
-        document.getElementById('setup-panel').style.display = 'block';
-        document.getElementById('configure-debate-btn').style.display = 'none';
+    // Verify required elements exist
+    const requiredIds = ['topic-input', 'start-debate-btn', 'model1-select', 'model2-select',
+                         'position-select', 'temperature-input', 'max-tokens-input',
+                         'configure-debate-btn', 'back-to-home-btn', 'landing-page', 'setup-panel'];
+    for (const id of requiredIds) {
+        if (!document.getElementById(id)) {
+            console.error(`[UI] Required element #${id} is missing — app cannot initialize`);
+            return false;
+        }
+    }
+
+    // Required landing page navigation
+    bindElement('configure-debate-btn', 'click', () => {
+        hideElement('landing-page');
+        showElement('setup-panel');
+        hideElement('configure-debate-btn');
+        showElement('back-to-home-btn');
         document.getElementById('back-to-home-btn').style.display = 'inline-block';
     });
 
-    // Back to Home button (show landing page)
-    document.getElementById('back-to-home-btn').addEventListener('click', () => {
-        document.getElementById('landing-page').style.display = 'block';
-        document.getElementById('setup-panel').style.display = 'none';
+    bindElement('back-to-home-btn', 'click', () => {
+        showElement('landing-page');
+        hideElement('setup-panel');
+        showElement('configure-debate-btn');
+        hideElement('back-to-home-btn');
         document.getElementById('configure-debate-btn').style.display = 'inline-block';
-        document.getElementById('back-to-home-btn').style.display = 'none';
     });
 
-    // Start debate button
-    document.getElementById('start-debate-btn').addEventListener('click', startNewDebate);
-
-    // New debate button (in header)
-    document.getElementById('new-debate-btn').addEventListener('click', () => {
-        if (confirm('Start a new debate? Current conversation will be lost.')) {
-            resetToSetup();
-        }
-    });
-
-    // Moderator controls
-    document.getElementById('interject-btn').addEventListener('click', interjectInDebate);
-    document.getElementById('continue-btn').addEventListener('click', advanceToNextSpeech);
-    document.getElementById('end-topic-btn').addEventListener('click', endDebate);
-
-    // Settings modal
-    document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
-    document.querySelectorAll('.modal-close').forEach(btn => {
-        btn.addEventListener('click', closeSettingsModal);
-    });
-    document.querySelector('.modal-save').addEventListener('click', saveSettings);
-    document.querySelector('.modal-overlay').addEventListener('click', closeSettingsModal);
-
-    // Export button
-    document.getElementById('export-btn').addEventListener('click', exportDebate);
-
-    // Enter key in topic input
-    document.getElementById('topic-input').addEventListener('keydown', (e) => {
+    // Required debate controls
+    bindElement('start-debate-btn', 'click', startNewDebate);
+    bindElement('topic-input', 'keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             if (!document.getElementById('start-debate-btn').disabled) {
@@ -102,6 +123,33 @@ function setupEventListeners() {
             }
         }
     });
+
+    // Required moderator controls (only exist in debate view)
+    bindElement('interject-btn', 'click', interjectInDebate);
+    bindElement('continue-btn', 'click', advanceToNextSpeech);
+    bindElement('end-topic-btn', 'click', endDebate);
+
+    // Optional feature bindings (gracefully skip if not in DOM)
+    bindElement('new-debate-btn', 'click', () => {
+        if (confirm('Start a new debate? Current conversation will be lost.')) {
+            resetToSetup();
+        }
+    });
+    bindElement('settings-btn', 'click', openSettingsModal);
+    bindElement('export-btn', 'click', exportDebate);
+
+    // Optional settings modal bindings
+    const modalClose = document.querySelectorAll('.modal-close');
+    if (modalClose.length > 0) {
+        modalClose.forEach(btn => btn.addEventListener('click', closeSettingsModal));
+    }
+    const modalSave = document.querySelector('.modal-save');
+    if (modalSave) modalSave.addEventListener('click', saveSettings);
+
+    const modalOverlay = document.querySelector('.modal-overlay');
+    if (modalOverlay) modalOverlay.addEventListener('click', closeSettingsModal);
+
+    return true;
 }
 
 /**
@@ -162,22 +210,26 @@ async function startNewDebate() {
  */
 function showDebateView() {
     // Hide setup panel
-    document.getElementById('setup-panel').style.display = 'none';
+    hideElement('setup-panel');
 
     // Show debate view
-    document.getElementById('debate-view').style.display = 'block';
+    showElement('debate-view');
 
     // Update header
-    document.getElementById('debate-topic').textContent = currentSession.topic;
-    document.getElementById('aff-model-badge').textContent = `AFF: ${currentSession.models.aff}`;
-    document.getElementById('neg-model-badge').textContent = `NEG: ${currentSession.models.neg}`;
+    const topicEl = document.getElementById('debate-topic');
+    const affBadgeEl = document.getElementById('aff-model-badge');
+    const negBadgeEl = document.getElementById('neg-model-badge');
 
-    // Show header buttons (settings now on main screen)
-    document.getElementById('new-debate-btn').style.display = 'block';
-    document.getElementById('export-btn').style.display = 'block';
+    if (topicEl) topicEl.textContent = currentSession.topic;
+    if (affBadgeEl) affBadgeEl.textContent = `AFF: ${currentSession.models.aff}`;
+    if (negBadgeEl) negBadgeEl.textContent = `NEG: ${currentSession.models.neg}`;
+
+    // Show optional header buttons (if they exist)
+    showElement('new-debate-btn');
+    showElement('export-btn');
 
     // Show glossary sidebar
-    document.getElementById('glossary-sidebar').style.display = 'block';
+    showElement('glossary-sidebar');
 
     // Clear conversation window
     DebateUI.clearConversation();
@@ -283,14 +335,23 @@ async function endDebate() {
  */
 function resetToSetup() {
     currentSession = null;
-    document.getElementById('debate-view').style.display = 'none';
-    document.getElementById('setup-panel').style.display = 'flex';
-    document.getElementById('topic-input').value = '';
-    document.getElementById('start-debate-btn').textContent = 'Start Debate';
-    document.getElementById('new-debate-btn').style.display = 'none';
-    document.getElementById('settings-btn').style.display = 'none';
-    document.getElementById('export-btn').style.display = 'none';
-    document.getElementById('glossary-sidebar').style.display = 'none';
+
+    // Hide debate view, show setup
+    hideElement('debate-view');
+    const setupPanel = document.getElementById('setup-panel');
+    if (setupPanel) setupPanel.style.display = 'flex';
+
+    // Reset form inputs
+    const topicInput = document.getElementById('topic-input');
+    const startBtn = document.getElementById('start-debate-btn');
+    if (topicInput) topicInput.value = '';
+    if (startBtn) startBtn.textContent = 'Start Debate';
+
+    // Hide optional buttons (if they exist)
+    hideElement('new-debate-btn');
+    hideElement('settings-btn');
+    hideElement('export-btn');
+    hideElement('glossary-sidebar');
 }
 
 /**
