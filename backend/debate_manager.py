@@ -424,30 +424,37 @@ class DebateManager:
         Returns:
             tuple of (formatted_content, usage_info)
         """
+        # IMPORTANT: Pre-clean with regex FIRST to remove obvious thinking blocks
+        # This reduces noise before sending to Haiku
+        pre_cleaned = self._strip_thinking_blocks(raw_content)
+
+        # If pre-cleaning resulted in very short content, it might be all thinking blocks
+        if len(pre_cleaned.strip()) < 50:
+            print(f"[Haiku] Warning: Pre-cleaned content too short ({len(pre_cleaned)} chars), using fallback")
+            return pre_cleaned, None
+
         speech_type = current_speech["type"]
 
         # Build formatting instruction
         if speech_type == "constructive":
             instruction = (
-                "Clean this debate argument by removing thinking blocks, planning notes, "
-                "and meta-commentary. Return only the actual argument with clear paragraphs. "
-                "Keep [Source: ...] citations intact."
+                "Polish this debate argument for readability. "
+                "Format as clear paragraphs with proper structure. "
+                "Keep all [Source: ...] citations intact."
             )
         elif speech_type == "cx_question":
             instruction = (
-                "Extract the cross-examination question from this output. "
-                "Remove planning notes. Return only the actual question as 1-2 clear sentences."
+                "Format this cross-examination question clearly as 1-2 direct sentences."
             )
         elif speech_type == "cx_answer":
             instruction = (
-                "Extract the cross-examination answer from this output. "
-                "Remove planning notes. Return only the actual answer as 1-2 clear paragraphs."
+                "Format this cross-examination answer as 1-2 clear, concise paragraphs."
             )
         else:  # rebuttal
             instruction = (
-                "Clean this rebuttal by removing thinking blocks and planning notes. "
-                "Return only the actual rebuttal arguments with clear paragraphs. "
-                "Keep [Source: ...] citations intact."
+                "Polish this rebuttal for readability. "
+                "Format as clear paragraphs with proper structure. "
+                "Keep all [Source: ...] citations intact."
             )
 
         # Call Haiku directly (uses subscription credits first automatically)
@@ -461,7 +468,7 @@ class DebateManager:
                 temperature=0.3,
                 messages=[{
                     "role": "user",
-                    "content": f"{instruction}\n\nRaw output:\n\n{raw_content}"
+                    "content": f"{instruction}\n\nContent to format:\n\n{pre_cleaned}"
                 }]
             )
 
