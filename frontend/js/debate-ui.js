@@ -35,8 +35,10 @@ const DebateUI = {
 
         const latencySec = (latency_ms / 1000).toFixed(1);
         const stanceLabel = stance === 'aff' ? 'AFF' : 'NEG';
+        const stanceFull = stance === 'aff' ? 'Affirmative' : 'Negative';
 
         const speechTypeLabel = this.getSpeechTypeLabel(speechType);
+        const speechExplanation = this.getSpeechExplanation(speechName, speaker_position);
 
         // Format content for better display
         const formattedContent = this.formatContent(content);
@@ -51,7 +53,10 @@ const DebateUI = {
         return `
             <div class="message ${stance}">
                 <div class="message-header">
-                    <span><strong>${speechName}</strong> - ${speaker_position} (${stanceLabel}): ${model_alias}</span>
+                    <span>
+                        <strong>${speechName}</strong> (${speechExplanation}) -
+                        Speaker ${speaker_position} (${stanceFull}): ${model_alias}
+                    </span>
                     <span class="message-meta">${latencySec}s • ${speechTypeLabel}</span>
                 </div>
                 <div class="message-content">${formattedContent}</div>
@@ -68,6 +73,36 @@ const DebateUI = {
             'rebuttal': 'Rebuttal'
         };
         return labels[type] || type;
+    },
+
+    /**
+     * Get full explanation for speech abbreviations
+     */
+    getSpeechExplanation(speechName, speakerPosition) {
+        // Map common speech abbreviations to full names
+        const speechMap = {
+            '1AC': 'First Affirmative Constructive',
+            '1NC': 'First Negative Constructive',
+            '2AC': 'Second Affirmative Constructive',
+            '2NC': 'Second Negative Constructive',
+            '1AR': 'First Affirmative Rebuttal',
+            '1NR': 'First Negative Rebuttal',
+            '2AR': 'Second Affirmative Rebuttal',
+            '2NR': 'Second Negative Rebuttal'
+        };
+
+        // Handle cross-examination speeches
+        if (speechName.startsWith('CX by')) {
+            const speaker = speechName.replace('CX by ', '');
+            return `Cross-Examination by ${speaker}`;
+        }
+        if (speechName.startsWith('Answer by')) {
+            const speaker = speechName.replace('Answer by ', '');
+            return `Cross-Examination Answer by ${speaker}`;
+        }
+
+        // Return full name if found, otherwise return original
+        return speechMap[speechName] || speechName;
     },
 
     /**
