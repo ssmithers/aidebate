@@ -1,6 +1,13 @@
 {
   "lm_studio_endpoint": "http://192.168.1.198:5555/v1/chat/completions",
   "models": {
+    "claude-opus": {
+      "id": "claude-opus-4-6",
+      "type": "anthropic",
+      "temperature": 0.7,
+      "max_tokens": 2048,
+      "name": "Claude Opus 4.6"
+    },
     "glm-flash": {
       "id": "zai-org/glm-4.7-flash",
       "type": "lm_studio",
@@ -16,5 +23,10 @@
       "name": "Devstral Small 2 24B"
     }
   },
-  "_note": "Opus removed from debate models per Brain's architectural guidance - local models + regex cleaning is the DALS approach. Reserve Opus for future judge feature only."
+  "formatter": {
+    "model": "claude-haiku-4-5",
+    "temperature": 0.3,
+    "max_tokens": 1000,
+    "note": "Haiku for formatting - 60x cheaper than Opus, uses subscription credits first"
+  }
 }

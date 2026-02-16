@@ -61,167 +61,97 @@ class ModelClient:
     
     def _call_anthropic(self, model_alias: str, messages: list, temperature: float = None, max_tokens: int = None):
         """
-        Call Anthropic API (Claude models) via DALS bridge.
+        Call Anthropic API (Claude models) directly.
 
-        Routes through bridge.py to use subscription credits first, then API key.
+        Uses subscription credits first automatically, then API key.
         """
-        import hashlib
-        from pathlib import Path
+        if not self.anthropic_client:
+            return {
+                "success": False,
+                "content": None,
+                "error": "Anthropic API key not configured. Set ANTHROPIC_API_KEY environment variable.",
+                "latency_ms": 0,
+                "usage": None
+            }
 
         model_config = self.models[model_alias]
+        model_id = model_config["id"]
 
         temp = temperature if temperature is not None else model_config.get("temperature", 0.7)
         max_tok = max_tokens if max_tokens is not None else model_config.get("max_tokens", 4096)
 
-        # Bridge communication files
-        bridge_base = Path("/Users/ssmithers/Desktop/CODE/dals")
-        passon_file = bridge_base / "passon.md"
-        response_file = bridge_base / "response.md"
-
-        # Extract debate context from messages
+        # Convert messages format - Anthropic requires system message separate
         system_message = None
-        conversation = []
+        converted_messages = []
 
         for msg in messages:
             if msg["role"] == "system":
                 system_message = msg["content"]
             else:
-                conversation.append(msg["content"])
+                converted_messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
 
-        # Parse debate parameters from system message
-        topic = "Unknown topic"
-        position = "Unknown position"
-        speech_type = "speech"
+        # Anthropic requires at least one message
+        if not converted_messages:
+            converted_messages.append({
+                "role": "user",
+                "content": "Please provide your response."
+            })
 
-        if system_message:
-            # Extract topic (after "debate on: '")
-            if "debate on:" in system_message or "topic:" in system_message.lower():
-                import re
-                topic_match = re.search(r"(?:debate on|topic):\s*['\"]([^'\"]+)['\"]", system_message, re.IGNORECASE)
-                if topic_match:
-                    topic = topic_match.group(1)
+        # CRITICAL: Anthropic requires conversation to END with user message
+        if converted_messages and converted_messages[-1]["role"] == "assistant":
+            converted_messages.append({
+                "role": "user",
+                "content": "Please continue."
+            })
 
-            # Determine position
-            if "AFFIRMATIVE" in system_message or "affirmative" in system_message.lower():
-                position = "Affirmative (Pro)"
-            elif "NEGATIVE" in system_message or "negative" in system_message.lower():
-                position = "Negative (Con)"
+        try:
+            start_time = time.time()
 
-            # Determine speech type
-            if "CONSTRUCTIVE" in system_message:
-                speech_type = "constructive"
-            elif "CROSS-EXAMINATION" in system_message or "cx_question" in system_message:
-                speech_type = "cross-examination question"
-            elif "ANSWERING cross-examination" in system_message or "cx_answer" in system_message:
-                speech_type = "cross-examination answer"
-            elif "REBUTTAL" in system_message:
-                speech_type = "rebuttal"
+            kwargs = {
+                "model": model_id,
+                "max_tokens": max_tok,
+                "temperature": temp,
+                "messages": converted_messages
+            }
 
-        # Build DALS task request
-        request = (
-            "## DALS Task: Generate Debate Content for AI Debate Simulator\n\n"
-            f"**Project**: AI Debate Simulator (aidebate)\n"
-            f"**Topic**: {topic}\n"
-            f"**Position**: {position}\n"
-            f"**Speech Type**: {speech_type}\n"
-            f"**Settings**: temperature={temp}, max_tokens={max_tok}\n\n"
-            "**Task**: Generate a debate argument for this position and speech type. "
-        )
+            if system_message:
+                kwargs["system"] = system_message
 
-        # Add previous conversation context if exists
-        if conversation:
-            request += f"\n\n**Previous exchanges in this debate**:\n"
-            for i, msg in enumerate(conversation[-3:], 1):  # Last 3 exchanges for context
-                preview = msg[:200] + "..." if len(msg) > 200 else msg
-                request += f"\n{i}. {preview}\n"
+            response = self.anthropic_client.messages.create(**kwargs)
 
-        request += (
-            "\n\n**Instructions**:\n"
-            "- Provide a concise, well-structured argument\n"
-            "- Use [Source: ...] format for citations\n"
-            "- Match the tone and style appropriate for policy debate\n"
-            "- Return only the debate content, no meta-commentary\n"
-        )
+            latency_ms = int((time.time() - start_time) * 1000)
 
-        request_message = request
+            # Extract text content
+            content = ""
+            for block in response.content:
+                if block.type == "text":
+                    content += block.text
 
-        # Helper to get file hash
-        def get_file_hash(path):
-            if not path.exists():
-                return ""
-            return hashlib.md5(path.read_text().encode()).hexdigest()
+            print(f"[Anthropic] {model_alias} response received (subscription credits used first)")
 
-        # Get current response.md hash before writing
-        old_response_hash = get_file_hash(response_file)
-
-        # Write request to passon.md
-        passon_file.write_text(request_message)
-        print(f"[Bridge] Debate request sent to Opus via bridge")
-
-        # Wait for response.md to update (poll with timeout)
-        timeout = 120  # 2 minutes for debate responses (longer than formatting)
-        poll_interval = 2
-        elapsed = 0
-        start_time = time.time()
-
-        while elapsed < timeout:
-            time.sleep(poll_interval)
-            elapsed += poll_interval
-
-            current_hash = get_file_hash(response_file)
-            if current_hash and current_hash != old_response_hash:
-                # Response received!
-                response_text = response_file.read_text()
-
-                # Strip bridge header and metadata
-                lines = response_text.split('\n')
-                content_lines = []
-                usage_info = None
-
-                for line in lines:
-                    # Extract token usage if present
-                    if '*[Opus' in line and 'tokens]*' in line:
-                        # Parse: *[Opus 4.6 | 1234 in / 5678 out tokens]*
-                        import re
-                        match = re.search(r'(\d+) in / (\d+) out', line)
-                        if match:
-                            usage_info = {
-                                "input_tokens": int(match.group(1)),
-                                "output_tokens": int(match.group(2))
-                            }
-                        continue
-
-                    # Skip HTML comments
-                    if line.strip().startswith('<!--'):
-                        continue
-
-                    content_lines.append(line)
-
-                content = '\n'.join(content_lines).strip()
-                latency_ms = int((time.time() - start_time) * 1000)
-
-                print(f"[Bridge] Opus debate response received via bridge (subscription)")
-
-                return {
-                    "success": True,
-                    "content": content,
-                    "error": None,
-                    "latency_ms": latency_ms,
-                    "usage": usage_info
+            return {
+                "success": True,
+                "content": content,
+                "error": None,
+                "latency_ms": latency_ms,
+                "usage": {
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens
                 }
+            }
 
-        # Timeout
-        print(f"[Bridge] ⚠️  WARNING: No Opus response after {timeout}s")
-        print(f"[Bridge] ⚠️  Is bridge.py running? Check: ps aux | grep bridge.py")
+        except Exception as e:
+            return {
+                "success": False,
+                "content": None,
+                "error": str(e),
+                "latency_ms": 0,
+                "usage": None
+            }
 
-        return {
-            "success": False,
-            "content": None,
-            "error": f"Bridge timeout after {timeout}s. Is bridge.py running?",
-            "latency_ms": 0,
-            "usage": None
-        }
-    
     def _call_lm_studio(self, model_alias: str, messages: list, temperature: float = None, max_tokens: int = None):
         """Call LM Studio (local models)."""
         model_config = self.models[model_alias]

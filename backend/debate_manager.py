@@ -120,12 +120,12 @@ class DebateManager:
 
         # Process response
         if result["success"]:
-            # Use local regex cleaning (DALS architecture - free, fast)
-            # Brain's guidance: Don't waste Opus credits on cleaning tasks
-            cleaned_content = self._strip_thinking_blocks(result["content"])
+            # Use Haiku for formatting (cheap, effective, uses subscription credits first)
+            # 60x cheaper than Opus, perfect for cleaning tasks
+            formatted_content = self._format_with_haiku(result["content"], current_speech)
 
             # Extract citations
-            content, citations = extract_citations(cleaned_content)
+            content, citations = extract_citations(formatted_content)
         else:
             content = f"[ERROR: {result['error']}]"
             citations = []
@@ -311,6 +311,68 @@ class DebateManager:
         cleaned = re.sub(r'^[\s*-]+', '', cleaned, flags=re.MULTILINE)
 
         return cleaned.strip()
+
+    def _format_with_haiku(self, raw_content: str, current_speech: dict) -> str:
+        """
+        Format debate output using Claude Haiku (cheap, fast, effective).
+
+        Uses subscription credits first, then API key.
+        Cost: ~$0.001 per speech (60x cheaper than Opus).
+        """
+        speech_type = current_speech["type"]
+
+        # Build formatting instruction
+        if speech_type == "constructive":
+            instruction = (
+                "Clean this debate argument by removing thinking blocks, planning notes, "
+                "and meta-commentary. Return only the actual argument with clear paragraphs. "
+                "Keep [Source: ...] citations intact."
+            )
+        elif speech_type == "cx_question":
+            instruction = (
+                "Extract the cross-examination question from this output. "
+                "Remove planning notes. Return only the actual question as 1-2 clear sentences."
+            )
+        elif speech_type == "cx_answer":
+            instruction = (
+                "Extract the cross-examination answer from this output. "
+                "Remove planning notes. Return only the actual answer as 1-2 clear paragraphs."
+            )
+        else:  # rebuttal
+            instruction = (
+                "Clean this rebuttal by removing thinking blocks and planning notes. "
+                "Return only the actual rebuttal arguments with clear paragraphs. "
+                "Keep [Source: ...] citations intact."
+            )
+
+        # Call Haiku directly (uses subscription credits first automatically)
+        try:
+            from anthropic import Anthropic
+            client = Anthropic()  # Uses ANTHROPIC_API_KEY from env
+
+            response = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=1000,
+                temperature=0.3,
+                messages=[{
+                    "role": "user",
+                    "content": f"{instruction}\n\nRaw output:\n\n{raw_content}"
+                }]
+            )
+
+            # Extract text content
+            content = ""
+            for block in response.content:
+                if block.type == "text":
+                    content += block.text
+
+            return content.strip()
+
+        except Exception as e:
+            print(f"[Haiku] Formatting failed: {e}")
+            print(f"[Haiku] Falling back to regex cleaning")
+            # Fallback to regex if Haiku fails
+            return self._strip_thinking_blocks(raw_content)
 
     def _format_through_opus(self, raw_content: str, current_speech: dict) -> str:
         """
