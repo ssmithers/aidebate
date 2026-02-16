@@ -244,39 +244,39 @@ def vote_on_speech(speech_id: int, user_id: str, vote_type: str):
                 DO UPDATE SET vote_type = excluded.vote_type
             """, (speech_id, user_id, vote_type, vote_phase))
 
-        # Recalculate upvotes and downvotes for this speech
-        cursor.execute("""
-            SELECT
-                SUM(CASE WHEN vote_type = 'up' THEN 1 ELSE 0 END) as upvotes,
-                SUM(CASE WHEN vote_type = 'down' THEN 1 ELSE 0 END) as downvotes
-            FROM speech_votes
-            WHERE speech_id = ?
-        """, (speech_id,))
+            # Recalculate upvotes and downvotes for this speech
+            cursor.execute("""
+                SELECT
+                    SUM(CASE WHEN vote_type = 'up' THEN 1 ELSE 0 END) as upvotes,
+                    SUM(CASE WHEN vote_type = 'down' THEN 1 ELSE 0 END) as downvotes
+                FROM speech_votes
+                WHERE speech_id = ?
+            """, (speech_id,))
 
-        upvotes, downvotes = cursor.fetchone()
+            upvotes, downvotes = cursor.fetchone()
 
-        # Update speech vote counts
-        cursor.execute("""
-            UPDATE debate_speeches
-            SET upvotes = ?, downvotes = ?
-            WHERE id = ?
-        """, (upvotes or 0, downvotes or 0, speech_id))
+            # Update speech vote counts
+            cursor.execute("""
+                UPDATE debate_speeches
+                SET upvotes = ?, downvotes = ?
+                WHERE id = ?
+            """, (upvotes or 0, downvotes or 0, speech_id))
 
-        # Update debate-level totals
-        cursor.execute("""
-            SELECT debate_id, side FROM debate_speeches WHERE id = ?
-        """, (speech_id,))
-        debate_id, side = cursor.fetchone()
+            # Update debate-level totals
+            cursor.execute("""
+                SELECT debate_id, side FROM debate_speeches WHERE id = ?
+            """, (speech_id,))
+            debate_id, side = cursor.fetchone()
 
-        # Aggregate all votes for this side
-        cursor.execute("""
-            SELECT SUM(upvotes), SUM(downvotes)
-            FROM debate_speeches
-            WHERE debate_id = ? AND side = ?
-        """, (debate_id, side))
+            # Aggregate all votes for this side
+            cursor.execute("""
+                SELECT SUM(upvotes), SUM(downvotes)
+                FROM debate_speeches
+                WHERE debate_id = ? AND side = ?
+            """, (debate_id, side))
 
-        total_up, total_down = cursor.fetchone()
-        net_votes = (total_up or 0) - (total_down or 0)
+            total_up, total_down = cursor.fetchone()
+            net_votes = (total_up or 0) - (total_down or 0)
 
             # Update debate totals
             if side == 'pro':
