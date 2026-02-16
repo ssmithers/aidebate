@@ -231,6 +231,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Failed to fetch debate details');
             const debate = await response.json();
 
+            console.log('Debate data received:', debate);
+            console.log('Number of speeches in debate:', debate.speeches ? debate.speeches.length : 'undefined');
+
             // Show debate viewer (implement modal or new page)
             renderDebateViewer(debate);
         } catch (error) {
@@ -266,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="debate-speeches-container" id="speeches-container">
                     ${renderSpeeches(debate.speeches, debate.id)}
                 </div>
-                <div id="judgment-section" class="judgment-section">
+                <div id="judgment-section" class="judgment-section" data-topic-title="${escapeHtml(debate.topic_title)}">
                     <!-- Judgment will be loaded here -->
                 </div>
                 <div class="debate-viewer-footer">
@@ -307,12 +310,20 @@ document.addEventListener('DOMContentLoaded', () => {
      * Author: Stephen F Smithers
      */
     function renderSpeeches(speeches, debateId) {
+        console.log('renderSpeeches called with:', speeches ? speeches.length : 0, 'speeches');
+
         if (!speeches || speeches.length === 0) {
-            return '<p>No speeches available.</p>';
+            return '<p style="color: #f38ba8; padding: 2rem;">No speeches available. Debug: speeches is ' + (speeches ? 'empty array' : 'null/undefined') + '</p>';
         }
 
-        return speeches.map(speech => {
-            const sideClass = speech.side === 'pro' ? 'speech-pro' : 'speech-con';
+        const header = `<div style="background: #313244; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; color: #a6adc8;">
+            <strong>📜 Debate Transcript</strong> — ${speeches.length} speeches loaded
+        </div>`;
+
+        const speechesHTML = speeches.map(speech => {
+            // Map 'aff'/'neg' from database to 'pro'/'con' for styling
+            const side = (speech.side === 'aff' || speech.side === 'pro') ? 'pro' : 'con';
+            const sideClass = side === 'pro' ? 'speech-pro' : 'speech-con';
             const upvotes = speech.upvotes || 0;
             const downvotes = speech.downvotes || 0;
             const netVotes = upvotes - downvotes;
@@ -321,10 +332,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="speech-card ${sideClass}">
                     <div class="speech-header">
                         <span class="speech-type">${escapeHtml(speech.speech_type)}</span>
-                        <span class="speech-side">${speech.side.toUpperCase()}</span>
+                        <span class="speech-side">${side.toUpperCase()}</span>
                     </div>
                     <div class="speech-content">
-                        ${escapeHtml(speech.content)}
+                        ${speech.content}
                     </div>
                     <div class="speech-footer">
                         <div class="speech-votes">
@@ -343,6 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         }).join('');
+
+        return header + speechesHTML;
     }
 
     /**
@@ -471,9 +484,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('judgment-section');
         if (!container) return;
 
+        // Get topic from data attribute to detect versus debates
+        const topic = container.getAttribute('data-topic-title') || '';
+        const isVersusDebate = topic.toLowerCase().includes(' vs ') || topic.toLowerCase().includes(' versus ');
+
+        // Extract fighter/side names for versus debates
+        let side1Name = 'Pro';
+        let side2Name = 'Con';
+        if (isVersusDebate) {
+            const parts = topic.split(/\s+vs\.?\s+|\s+versus\s+/i);
+            if (parts[0]) side1Name = parts[0].trim();
+            if (parts[1]) side2Name = parts[1].trim().replace(/\s*\(.*?\)\s*$/, ''); // Remove "(Prime)" suffix
+        }
+
         container.innerHTML = judgments.map(judgment => {
-            const winnerLabel = judgment.winner === 'tie' ? 'Tie' :
-                               judgment.winner.toUpperCase();
+            let winnerLabel;
+            if (judgment.winner === 'tie') {
+                winnerLabel = 'Tie';
+            } else if (judgment.winner === 'pro') {
+                winnerLabel = side1Name;
+            } else {
+                winnerLabel = side2Name;
+            }
+
             const winnerClass = judgment.winner === 'tie' ? 'tie' : judgment.winner;
             const confidence = Math.round(judgment.confidence * 100);
 
@@ -492,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 return `
                                     <div class="criterion-row">
                                         <span class="criterion-name">${criterion.replace(/_/g, ' ')}</span>
-                                        <span class="criterion-scores">Pro: ${values.pro} | Con: ${values.con}</span>
+                                        <span class="criterion-scores">${side1Name}: ${values.pro}/10 | ${side2Name}: ${values.con}/10</span>
                                     </div>
                                 `;
                             }
