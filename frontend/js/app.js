@@ -113,8 +113,8 @@ async function startNewDebate() {
         document.getElementById('start-debate-btn').disabled = true;
         document.getElementById('start-debate-btn').textContent = 'Starting...';
 
-        // Start debate with settings from form (always 16 speeches - full policy debate)
-        currentSession = await API.startDebate(topic, model1, model2, model1Position, 16);
+        // Start debate with settings from form (always 18 speeches - full policy debate + closing arguments)
+        currentSession = await API.startDebate(topic, model1, model2, model1Position, 18);
 
         // Show debate view
         showDebateView();

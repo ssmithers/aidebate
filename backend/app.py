@@ -186,7 +186,8 @@ def export_debate_markdown(session_id):
         md += "### Speech Types\n"
         md += "- **Constructive**: Opening arguments presenting the case\n"
         md += "- **Cross-Examination (CX)**: Question period where opponent challenges arguments\n"
-        md += "- **Rebuttal**: Closing arguments refuting opponent's case\n\n"
+        md += "- **Rebuttal**: Arguments refuting opponent's case\n"
+        md += "- **Closing**: Final summary arguments\n\n"
 
         md += "### Speech Labels\n"
         md += "- **1AC**: First Affirmative Constructive\n"

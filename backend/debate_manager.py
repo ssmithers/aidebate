@@ -16,7 +16,7 @@ class DebateManager:
         self.sessions_dir.mkdir(exist_ok=True)
         self.client = ModelClient()
 
-        # Policy debate flow (1-minute speeches)
+        # Policy debate flow (1-minute speeches) + closing arguments
         self.policy_debate_flow = [
             {"speech": "1AC", "type": "constructive", "side": "aff", "speaker": "1A", "duration": 60},
             {"speech": "CX by 2N", "type": "cx_question", "side": "neg", "speaker": "2N", "duration": 60},
@@ -34,9 +34,11 @@ class DebateManager:
             {"speech": "1AR", "type": "rebuttal", "side": "aff", "speaker": "1A", "duration": 60},
             {"speech": "2NR", "type": "rebuttal", "side": "neg", "speaker": "2N", "duration": 60},
             {"speech": "2AR", "type": "rebuttal", "side": "aff", "speaker": "2A", "duration": 60},
+            {"speech": "Affirmative Closing", "type": "closing", "side": "aff", "speaker": "2A", "duration": 60},
+            {"speech": "Negative Closing", "type": "closing", "side": "neg", "speaker": "2N", "duration": 60},
         ]
 
-    def start_debate(self, topic: str, model1: str, model2: str, model1_position: str, num_speeches: int = 16) -> DebateSession:
+    def start_debate(self, topic: str, model1: str, model2: str, model1_position: str, num_speeches: int = 18) -> DebateSession:
         """
         Create a new policy debate session.
 
@@ -45,7 +47,7 @@ class DebateManager:
             model1: First model alias
             model2: Second model alias
             model1_position: Speaker position for model1 ("2A/1N" or "2N/1A")
-            num_speeches: Number of speeches (ignored - always uses 16)
+            num_speeches: Number of speeches (ignored - always uses 18: full policy debate + closing arguments)
 
         Returns:
             DebateSession object
@@ -326,7 +328,8 @@ class DebateManager:
                 "- Introduce NEW arguments supporting your position\n"
                 "- Present evidence and reasoning\n"
                 "- Build your case with clear contentions\n"
-                "- Cite sources using [Source: ...] format\n"
+                "- Cite sources with DESCRIPTIVE text: [Source: Harvard Medical School 2023 study] or [Source: USDA nutrition database]\n"
+                "  NEVER use just numbers like [Source: 1] - always include the actual source name\n"
                 "- Keep your response concise (aim for 3-5 key points)\n"
                 "- Start immediately with your first argument\n"
             )
@@ -358,8 +361,21 @@ class DebateManager:
                 "- Extend your own arguments\n"
                 "- Do NOT introduce brand new arguments\n"
                 "- Focus on winning key issues in the debate\n"
-                "- Cite sources using [Source: ...] format\n"
+                "- Cite sources with DESCRIPTIVE text: [Source: Harvard Medical School 2023 study] or [Source: USDA nutrition database]\n"
+                "  NEVER use just numbers like [Source: 1] - always include the actual source name\n"
                 "- Start immediately with your rebuttal\n"
+            )
+
+        elif speech_type == "closing":
+            base += (
+                "This is your CLOSING ARGUMENT. Deliver your final summary directly:\n"
+                "- Summarize why your side should win this debate\n"
+                "- Highlight your strongest arguments\n"
+                "- Point out critical weaknesses in your opponent's case\n"
+                "- Make your final persuasive appeal\n"
+                "- Do NOT introduce new evidence or arguments\n"
+                "- Keep it concise and powerful (2-3 paragraphs maximum)\n"
+                "- Start immediately with your closing\n"
             )
 
         if moderator_message:
@@ -450,11 +466,23 @@ class DebateManager:
             instruction = (
                 "Format this cross-examination answer as 1-2 clear, concise paragraphs."
             )
-        else:  # rebuttal
+        elif speech_type == "rebuttal":
             instruction = (
                 "Polish this rebuttal for readability. "
                 "Format as clear paragraphs with proper structure. "
                 "Keep all [Source: ...] citations intact."
+            )
+        elif speech_type == "closing":
+            instruction = (
+                "Polish this closing argument for maximum impact. "
+                "Format as clear, powerful paragraphs. "
+                "Keep all [Source: ...] citations intact."
+            )
+        else:
+            # Fallback for any other speech type
+            instruction = (
+                "Polish this content for readability. "
+                "Format as clear paragraphs with proper structure."
             )
 
         # Call Haiku directly (uses subscription credits first automatically)
