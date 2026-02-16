@@ -96,7 +96,15 @@ class ModelClient:
                 "role": "user",
                 "content": "Please provide your response."
             })
-        
+
+        # CRITICAL: Anthropic requires conversation to END with user message
+        # Cannot have assistant message as last message (no prefill support for this model)
+        if converted_messages and converted_messages[-1]["role"] == "assistant":
+            converted_messages.append({
+                "role": "user",
+                "content": "Please continue."
+            })
+
         try:
             start_time = time.time()
             

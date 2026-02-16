@@ -266,9 +266,9 @@ class DebateManager:
     
     def _strip_thinking_blocks(self, text: str) -> str:
         """
-        Remove thinking blocks from model output.
+        Remove obvious thinking blocks from model output.
 
-        Models leak reasoning in multiple formats - aggressively strip all of it.
+        Keep this simple - Opus formatting will handle the rest.
         """
         import re
 
@@ -278,67 +278,28 @@ class DebateManager:
         # Pattern 2: Remove everything before </think> tag
         cleaned = re.sub(r'^.*?</think>\s*', '', cleaned, flags=re.DOTALL)
 
-        # Pattern 3: Remove markdown-style thinking sections
-        # Matches: "1. **Analyze...", "2. **Determine...", "3. **Identify..." etc.
-        # Strategy: Find the LAST numbered section, then take content after it
-
-        # Find all sections that look like: "N. **Title:**" (thinking headers)
-        thinking_pattern = r'^\s*\d+\.\s*\*\*[^:]+:\*\*\s*$'
-
+        # Pattern 3: Remove numbered thinking headers at the start
+        # Example: "1. **Analyze the Request:**"
+        # Strategy: Remove blocks of consecutive numbered headers
         lines = cleaned.split('\n')
-        last_thinking_header = -1
+        start_index = 0
 
-        # Find the last thinking-style header
+        # Skip leading numbered headers like "1. **Title:**" or "2. **Another:**"
+        thinking_header_pattern = r'^\s*\d+\.\s*\*\*[^*]+\*\*'
+
         for i, line in enumerate(lines):
-            if re.match(thinking_pattern, line.strip()):
-                last_thinking_header = i
-
-        # If we found thinking headers, look for content after them
-        if last_thinking_header >= 0:
-            # Look for actual content after the thinking section
-            # Real content is usually:
-            # - Long paragraphs (>100 chars)
-            # - Doesn't start with asterisks
-            # - Doesn't start with numbers
-
-            for i in range(last_thinking_header + 1, len(lines)):
-                line = lines[i].strip()
-                # Skip empty, asterisk bullets, and sub-numbering
-                if not line or line.startswith('*') or line.startswith('-'):
-                    continue
-                # Check if this looks like real content
-                # Real debate content usually starts with a capital letter and forms sentences
-                if len(line) > 80 and not re.match(r'^\s*\d+\.', line):
-                    # Found real content - take everything from here
-                    cleaned = '\n'.join(lines[i:])
-                    break
-            else:
-                # Didn't find clear content - take last 30% of text as fallback
-                split_point = int(len(lines) * 0.7)
-                cleaned = '\n'.join(lines[split_point:])
-
-        # Pattern 4: If response contains "Drafting" markers, extract content after them
-        draft_markers = [
-            r'\*\s*Final.*?:\*\s*(.+)',
-            r'Final\s+(?:Question|Response|Output|Statement):\s*(.+)',
-            r'(?:My|The)\s+(?:Question|Response|Answer|Argument):\s*(.+)'
-        ]
-
-        for marker in draft_markers:
-            match = re.search(marker, cleaned, re.DOTALL | re.IGNORECASE)
-            if match:
-                cleaned = match.group(1)
+            stripped = line.strip()
+            # If line is a thinking header or bullet point under a header
+            if re.match(thinking_header_pattern, stripped) or (stripped.startswith('*') and i < 10):
+                continue
+            # Found first non-thinking line
+            if stripped:
+                start_index = i
                 break
 
-        # Pattern 5: Last resort - if still has thinking markers, take last paragraph
-        if re.search(r'\*\s*\*[A-Z][^:]+:', cleaned):
-            paragraphs = [p.strip() for p in cleaned.split('\n\n') if len(p.strip()) > 100]
-            if paragraphs:
-                # Take the last substantial paragraph
-                cleaned = paragraphs[-1]
-
-        # Clean up any remaining asterisk bullets at the start
-        cleaned = re.sub(r'^\s*\*+\s*', '', cleaned)
+        # Keep everything from first real content line onward
+        if start_index > 0:
+            cleaned = '\n'.join(lines[start_index:])
 
         return cleaned.strip()
 
