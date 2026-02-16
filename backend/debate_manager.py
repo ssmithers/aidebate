@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 import sys
 
-from .models import DebateSession, DebateTurn, DebateResponse
+from .models import DebateSession, DebateTurn, DebateResponse, ModelUsage
 from .citation_processor import extract_citations
 from .model_client import ModelClient
 
@@ -118,11 +118,30 @@ class DebateManager:
             max_tokens=session.settings["max_tokens"]
         )
 
+        # Log debate content generation usage
+        model_config = self.client.models.get(model_alias, {})
+        model_type = model_config.get("type", "unknown")
+        usage = result.get("usage", {})
+
+        session.usage_log.append(ModelUsage(
+            model=model_config.get("id", model_alias),
+            model_type=model_type,
+            purpose="debate_content",
+            speech_name=current_speech["speech"],
+            input_tokens=usage.get("input_tokens", 0) if usage else 0,
+            output_tokens=usage.get("output_tokens", 0) if usage else 0,
+            latency_ms=result.get("latency_ms", 0)
+        ))
+
         # Process response
         if result["success"]:
             # Use Haiku for formatting (cheap, effective, uses subscription credits first)
             # 60x cheaper than Opus, perfect for cleaning tasks
-            formatted_content = self._format_with_haiku(result["content"], current_speech)
+            formatted_content, formatting_usage = self._format_with_haiku(result["content"], current_speech)
+
+            # Log formatting usage
+            if formatting_usage:
+                session.usage_log.append(formatting_usage)
 
             # Extract citations
             content, citations = extract_citations(formatted_content)
@@ -167,6 +186,88 @@ class DebateManager:
         session.status = "completed"
         self._save_session(session)
         return session
+
+    def get_usage_report(self, session_id: str) -> dict:
+        """
+        Generate a detailed usage report for the debate.
+
+        Returns:
+            dict with usage breakdown by model, purpose, and credit source
+        """
+        session = self._load_session(session_id)
+
+        # Aggregate usage by model and purpose
+        usage_by_model = {}
+        total_anthropic_input = 0
+        total_anthropic_output = 0
+        total_local_calls = 0
+
+        for usage in session.usage_log:
+            key = f"{usage.model}_{usage.purpose}"
+
+            if key not in usage_by_model:
+                usage_by_model[key] = {
+                    "model": usage.model,
+                    "model_type": usage.model_type,
+                    "purpose": usage.purpose,
+                    "speeches": [],
+                    "total_input_tokens": 0,
+                    "total_output_tokens": 0,
+                    "total_calls": 0
+                }
+
+            usage_by_model[key]["speeches"].append(usage.speech_name)
+            usage_by_model[key]["total_input_tokens"] += usage.input_tokens
+            usage_by_model[key]["total_output_tokens"] += usage.output_tokens
+            usage_by_model[key]["total_calls"] += 1
+
+            # Track totals
+            if usage.model_type == "anthropic":
+                total_anthropic_input += usage.input_tokens
+                total_anthropic_output += usage.output_tokens
+            elif usage.model_type == "lm_studio":
+                total_local_calls += 1
+
+        # Calculate costs (API key rates - actual cost depends on subscription usage)
+        cost_rates = {
+            "claude-opus-4-6": {"input": 15.00, "output": 75.00},  # per 1M tokens
+            "claude-sonnet-4-5": {"input": 3.00, "output": 15.00},
+            "claude-haiku-4-5": {"input": 0.25, "output": 1.25}
+        }
+
+        total_estimated_cost = 0
+        for usage_data in usage_by_model.values():
+            if usage_data["model_type"] == "anthropic":
+                model = usage_data["model"]
+                rates = cost_rates.get(model, {"input": 0, "output": 0})
+
+                input_cost = (usage_data["total_input_tokens"] / 1_000_000) * rates["input"]
+                output_cost = (usage_data["total_output_tokens"] / 1_000_000) * rates["output"]
+
+                usage_data["estimated_cost"] = input_cost + output_cost
+                total_estimated_cost += usage_data["estimated_cost"]
+            else:
+                usage_data["estimated_cost"] = 0.0
+
+        return {
+            "session_id": session_id,
+            "topic": session.topic,
+            "total_speeches": len(session.turns),
+            "usage_breakdown": list(usage_by_model.values()),
+            "totals": {
+                "anthropic_input_tokens": total_anthropic_input,
+                "anthropic_output_tokens": total_anthropic_output,
+                "local_model_calls": total_local_calls,
+                "estimated_cost_if_api_key": total_estimated_cost
+            },
+            "notes": [
+                "All Anthropic API calls use SUBSCRIPTION CREDITS FIRST",
+                "API key is only charged when subscription exhausted",
+                "Actual cost may be $0 if using subscription credits",
+                f"Estimated API key cost if no subscription: ${total_estimated_cost:.4f}",
+                "Local LM Studio calls are always FREE"
+            ]
+        }
     
     def _build_context(self, session: DebateSession, side: str, current_speech: dict, moderator_message: str | None) -> list[dict]:
         """
@@ -312,12 +413,15 @@ class DebateManager:
 
         return cleaned.strip()
 
-    def _format_with_haiku(self, raw_content: str, current_speech: dict) -> str:
+    def _format_with_haiku(self, raw_content: str, current_speech: dict) -> tuple[str, Optional[ModelUsage]]:
         """
         Format debate output using Claude Haiku (cheap, fast, effective).
 
         Uses subscription credits first, then API key.
         Cost: ~$0.001 per speech (60x cheaper than Opus).
+
+        Returns:
+            tuple of (formatted_content, usage_info)
         """
         speech_type = current_speech["type"]
 
@@ -366,13 +470,24 @@ class DebateManager:
                 if block.type == "text":
                     content += block.text
 
-            return content.strip()
+            # Create usage record
+            usage = ModelUsage(
+                model="claude-haiku-4-5",
+                model_type="anthropic",
+                purpose="formatting",
+                speech_name=current_speech["speech"],
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+                latency_ms=0  # Not tracking latency for formatting
+            )
+
+            return content.strip(), usage
 
         except Exception as e:
             print(f"[Haiku] Formatting failed: {e}")
             print(f"[Haiku] Falling back to regex cleaning")
             # Fallback to regex if Haiku fails
-            return self._strip_thinking_blocks(raw_content)
+            return self._strip_thinking_blocks(raw_content), None
 
     def _format_through_opus(self, raw_content: str, current_speech: dict) -> str:
         """

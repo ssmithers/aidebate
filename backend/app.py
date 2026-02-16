@@ -150,7 +150,7 @@ def end_topic():
 def get_history(session_id):
     """
     Get debate history.
-    
+
     Response: {session_id, topic, turns}
     """
     try:
@@ -160,6 +160,20 @@ def get_history(session_id):
             'topic': session.topic,
             'turns': [t.model_dump() for t in session.turns]
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
+
+
+@app.route('/api/debate/usage/<session_id>', methods=['GET'])
+def get_usage_report(session_id):
+    """
+    Get usage report for a debate session.
+
+    Response: {usage_breakdown, totals, notes}
+    """
+    try:
+        report = debate_manager.get_usage_report(session_id)
+        return jsonify(report)
     except Exception as e:
         return jsonify({'error': str(e)}), 404
 

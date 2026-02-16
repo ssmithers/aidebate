@@ -14,13 +14,6 @@
       "temperature": 0.3,
       "max_tokens": 2048,
       "name": "GLM-4.7-Flash 30B"
-    },
-    "devstral": {
-      "id": "devstral-small-2-24b-instruct-2512",
-      "type": "lm_studio",
-      "temperature": 0.3,
-      "max_tokens": 2048,
-      "name": "Devstral Small 2 24B"
     }
   },
   "formatter": {
@@ -28,5 +21,6 @@
     "temperature": 0.3,
     "max_tokens": 1000,
     "note": "Haiku for formatting - 60x cheaper than Opus, uses subscription credits first"
-  }
+  },
+  "_note": "Use lm_studio_detector.py to add newly loaded models automatically"
 }
