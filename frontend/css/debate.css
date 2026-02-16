@@ -1385,4 +1385,15 @@ sup {
     }
 }
 
+/* Button group for debate cards */
+.button-group-compact {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.button-group-compact .btn {
+    flex: 1;
+}
+
 /* Copyright (C) 2026 Stephen F Smithers. All Rights Reserved. */

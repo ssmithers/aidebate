@@ -360,7 +360,8 @@ def get_recent_debates(limit: int = 10) -> List[Dict[str, Any]]:
                 cd.total_pro_votes,
                 cd.total_con_votes,
                 cd.total_comments,
-                cd.completed_at
+                cd.completed_at,
+                cd.session_id
             FROM completed_debates cd
             JOIN topics t ON cd.topic_id = t.id
             ORDER BY cd.completed_at DESC
@@ -401,6 +402,7 @@ def get_top_debates(limit: int = 10) -> List[Dict[str, Any]]:
                 cd.total_con_votes,
                 cd.total_comments,
                 cd.completed_at,
+                cd.session_id,
                 (ABS(cd.total_pro_votes) + ABS(cd.total_con_votes) + cd.total_comments) as base_engagement,
                 -- PATENT INNOVATION: Time-weighted engagement score
                 -- Recent debates boosted, older debates decay

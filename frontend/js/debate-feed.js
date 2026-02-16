@@ -121,7 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="debate-rank">#${index + 1}</div>
                 ${voteDisplay}
                 ${comments > 0 ? `<div class="comment-count">💬 ${comments}</div>` : ''}
-                <button class="btn btn-secondary btn-sm view-debate-btn" data-debate-id="${debate.id}">View</button>
+                <div class="button-group-compact">
+                    <button class="btn btn-secondary btn-sm view-debate-btn" data-debate-id="${debate.id}">View</button>
+                    ${debate.session_id ? `<button class="btn btn-primary btn-sm export-debate-btn" data-session-id="${debate.session_id}" data-topic="${escapeHtml(topic)}">📥 Export</button>` : ''}
+                </div>
             `;
 
             topDebatesSection.appendChild(card);
@@ -132,6 +135,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', (e) => {
                 const debateId = parseInt(e.target.getAttribute('data-debate-id'));
                 viewDebate(debateId);
+            });
+        });
+
+        // Attach export handlers
+        document.querySelectorAll('.export-debate-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const sessionId = e.target.getAttribute('data-session-id');
+                const topic = e.target.getAttribute('data-topic');
+                exportDebateFromFeed(sessionId, topic);
             });
         });
     }
@@ -181,7 +193,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${statsDisplay}
                     ${comments > 0 ? `<span>${comments} 💬</span>` : ''}
                 </div>
-                <button class="btn btn-secondary btn-sm view-debate-btn" data-debate-id="${debate.id}">View</button>
+                <div class="button-group-compact">
+                    <button class="btn btn-secondary btn-sm view-debate-btn" data-debate-id="${debate.id}">View</button>
+                    ${debate.session_id ? `<button class="btn btn-primary btn-sm export-debate-btn" data-session-id="${debate.session_id}" data-topic="${escapeHtml(topic)}">📥 Export</button>` : ''}
+                </div>
             `;
 
             recentDebatesSection.appendChild(card);
@@ -192,6 +207,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', (e) => {
                 const debateId = parseInt(e.target.getAttribute('data-debate-id'));
                 viewDebate(debateId);
+            });
+        });
+
+        // Attach export handlers
+        document.querySelectorAll('.export-debate-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const sessionId = e.target.getAttribute('data-session-id');
+                const topic = e.target.getAttribute('data-topic');
+                exportDebateFromFeed(sessionId, topic);
             });
         });
     }
@@ -365,10 +389,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
+    /**
+     * Export debate as markdown from the feed
+     * Copyright (C) 2026 Stephen F Smithers
+     */
+    async function exportDebateFromFeed(sessionId, topic) {
+        try {
+            const response = await fetch(`/api/debate/export/${sessionId}`);
+            if (!response.ok) throw new Error('Failed to export debate');
+
+            const markdown = await response.text();
+
+            // Create download link
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `debate_${topic.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            console.log('Debate exported successfully');
+        } catch (error) {
+            console.error('Error exporting debate:', error);
+            alert('Failed to export debate. Please try again.');
+        }
+    }
+
     // Make functions globally available if needed
     window.loadTopDebates = loadTopDebates;
     window.loadRecentDebates = loadRecentDebates;
     window.viewDebate = viewDebate;
+    window.exportDebateFromFeed = exportDebateFromFeed;
 });
 
 // Copyright (C) 2026 Stephen F Smithers. All Rights Reserved.
