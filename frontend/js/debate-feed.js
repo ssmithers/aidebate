@@ -197,6 +197,12 @@ document.addEventListener('DOMContentLoaded', () => {
      * Copyright (C) 2026 Stephen F Smithers
      */
     function renderDebateViewer(debate) {
+        // Remove any existing modal to prevent stacking (bug fix)
+        const existing = document.querySelector('.debate-viewer-modal');
+        if (existing) {
+            existing.remove();
+        }
+
         // Create modal overlay
         const modal = document.createElement('div');
         modal.className = 'debate-viewer-modal';
@@ -285,8 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function attachVoteHandlers(debateId) {
         document.querySelectorAll('.vote-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const speechId = parseInt(e.target.getAttribute('data-speech-id'));
-                const voteType = e.target.getAttribute('data-vote-type');
+                // Use currentTarget to get button element (not child text node)
+                const speechId = parseInt(e.currentTarget.getAttribute('data-speech-id'));
+                const voteType = e.currentTarget.getAttribute('data-vote-type');
                 await voteOnSpeech(debateId, speechId, voteType);
             });
         });

@@ -134,7 +134,10 @@ def vote_speech(debate_id: int, speech_id: int):
             'debate': debate
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Log error server-side (don't leak details to client)
+        import logging
+        logging.error(f"Vote error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to record vote'}), 500
 
 
 @engagement_bp.route('/api/debates/<int:debate_id>/comments', methods=['POST'])
@@ -178,7 +181,10 @@ def add_debate_comment(debate_id: int):
             'comment_id': comment_id
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Log error server-side (don't leak details to client)
+        import logging
+        logging.error(f"Vote error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to record vote'}), 500
 
 
 @engagement_bp.route('/api/debates/<int:debate_id>/comments', methods=['GET'])
@@ -207,24 +213,8 @@ def get_comments(debate_id: int):
     return jsonify(comments)
 
 
-@engagement_bp.route('/api/debates/init', methods=['POST'])
-def initialize_tables():
-    """
-    Initialize engagement database tables.
-
-    This endpoint is called once during setup to create the schema.
-
-    Returns:
-        Success message
-
-    Author: Stephen F Smithers
-    """
-    try:
-        create_engagement_tables()
-        return jsonify({'status': 'Engagement tables created successfully'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
+# Removed public /api/debates/init endpoint for security
+# Tables are initialized at app startup in app.py
 
 # Export blueprint for registration
 # Copyright (C) 2026 Stephen F Smithers

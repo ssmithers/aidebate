@@ -17,7 +17,8 @@ from backend.debate_engagement_routes import engagement_bp
 from backend.debate_engagement_db import create_engagement_tables
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
-CORS(app)
+# Restrict CORS to prevent CSRF attacks (Copyright 2026 Stephen F Smithers)
+CORS(app, origins=['http://localhost:5000', 'http://127.0.0.1:5000'])
 
 # Initialize debate manager
 sessions_dir = Path(__file__).parent.parent / 'sessions'

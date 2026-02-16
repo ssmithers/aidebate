@@ -45,6 +45,7 @@ def create_engagement_tables():
                 total_pro_votes INTEGER DEFAULT 0,
                 total_con_votes INTEGER DEFAULT 0,
                 total_comments INTEGER DEFAULT 0,
+                debate_status TEXT DEFAULT 'completed',
                 completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (topic_id) REFERENCES topics(id),
                 FOREIGN KEY (debate_job_id) REFERENCES debate_jobs(id)
@@ -75,6 +76,7 @@ def create_engagement_tables():
                 speech_id INTEGER NOT NULL,
                 user_id TEXT NOT NULL,
                 vote_type TEXT NOT NULL,
+                vote_phase TEXT DEFAULT 'post',
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (speech_id) REFERENCES debate_speeches(id),
                 UNIQUE(speech_id, user_id)
@@ -95,6 +97,37 @@ def create_engagement_tables():
                 FOREIGN KEY (speech_id) REFERENCES debate_speeches(id),
                 FOREIGN KEY (parent_comment_id) REFERENCES debate_comments(id)
             )
+        """)
+
+        # Create indexes for performance (Stephen F Smithers, 2026)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_debate_speeches_debate_id
+            ON debate_speeches(debate_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_debate_speeches_debate_side
+            ON debate_speeches(debate_id, side)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_speech_votes_speech_id
+            ON speech_votes(speech_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_debate_comments_debate_id
+            ON debate_comments(debate_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_debate_comments_speech_id
+            ON debate_comments(speech_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_completed_debates_completed_at
+            ON completed_debates(completed_at DESC)
         """)
 
         conn.commit()
@@ -180,14 +213,36 @@ def vote_on_speech(speech_id: int, user_id: str, vote_type: str):
 
     Proprietary Algorithm: Stephen F Smithers, 2026
     """
+    # Input validation (prevent invalid vote types)
+    if vote_type not in ('up', 'down'):
+        raise ValueError(f"Invalid vote_type: {vote_type}. Must be 'up' or 'down'.")
+
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
 
-        # Insert or replace vote (users can change their vote)
-        cursor.execute("""
-            INSERT OR REPLACE INTO speech_votes (speech_id, user_id, vote_type)
-            VALUES (?, ?, ?)
-        """, (speech_id, user_id, vote_type))
+        # BEGIN IMMEDIATE transaction to prevent race conditions
+        cursor.execute("BEGIN IMMEDIATE")
+
+        try:
+            # Determine vote phase (live vs post) for Patent Claim #5
+            cursor.execute("""
+                SELECT cd.debate_status
+                FROM debate_speeches ds
+                JOIN completed_debates cd ON ds.debate_id = cd.id
+                WHERE ds.id = ?
+            """, (speech_id,))
+
+            result = cursor.fetchone()
+            vote_phase = 'live' if (result and result[0] == 'generating') else 'post'
+
+            # Use UPSERT to preserve original timestamp when vote changes
+            # This is CRITICAL for Patent Claim #6 (Temporal Engagement Metrics)
+            cursor.execute("""
+                INSERT INTO speech_votes (speech_id, user_id, vote_type, vote_phase)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(speech_id, user_id)
+                DO UPDATE SET vote_type = excluded.vote_type
+            """, (speech_id, user_id, vote_type, vote_phase))
 
         # Recalculate upvotes and downvotes for this speech
         cursor.execute("""
@@ -223,21 +278,24 @@ def vote_on_speech(speech_id: int, user_id: str, vote_type: str):
         total_up, total_down = cursor.fetchone()
         net_votes = (total_up or 0) - (total_down or 0)
 
-        # Update debate totals
-        if side == 'pro':
-            cursor.execute("""
-                UPDATE completed_debates
-                SET total_pro_votes = ?
-                WHERE id = ?
-            """, (net_votes, debate_id))
-        else:
-            cursor.execute("""
-                UPDATE completed_debates
-                SET total_con_votes = ?
-                WHERE id = ?
-            """, (net_votes, debate_id))
+            # Update debate totals
+            if side == 'pro':
+                cursor.execute("""
+                    UPDATE completed_debates
+                    SET total_pro_votes = ?
+                    WHERE id = ?
+                """, (net_votes, debate_id))
+            else:
+                cursor.execute("""
+                    UPDATE completed_debates
+                    SET total_con_votes = ?
+                    WHERE id = ?
+                """, (net_votes, debate_id))
 
-        conn.commit()
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise
 
 
 def add_comment(
@@ -317,11 +375,16 @@ def get_recent_debates(limit: int = 10) -> List[Dict[str, Any]]:
 
 def get_top_debates(limit: int = 10) -> List[Dict[str, Any]]:
     """
-    Returns debates ordered by total engagement.
+    Returns debates ordered by temporal engagement score.
 
     PATENT CLAIM #6: Temporal Engagement Metrics
-    Engagement score = (pro_votes + con_votes + comments)
-    This metric reflects community interest over time.
+    This proprietary algorithm calculates engagement using:
+    1. Base engagement: |pro_votes| + |con_votes| + comments
+    2. Recency boost: Recent debates weighted higher (time decay)
+    3. Formula: engagement * (1 / (1 + hours_since_completion^0.5))
+
+    This creates a temporal metric that values both controversy and
+    sustained interest, distinguishing it from simple vote counting.
 
     Proprietary Algorithm: Stephen F Smithers, 2026
     """
@@ -338,10 +401,16 @@ def get_top_debates(limit: int = 10) -> List[Dict[str, Any]]:
                 cd.total_con_votes,
                 cd.total_comments,
                 cd.completed_at,
-                (ABS(cd.total_pro_votes) + ABS(cd.total_con_votes) + cd.total_comments) as engagement_score
+                (ABS(cd.total_pro_votes) + ABS(cd.total_con_votes) + cd.total_comments) as base_engagement,
+                -- PATENT INNOVATION: Time-weighted engagement score
+                -- Recent debates boosted, older debates decay
+                (
+                    (ABS(cd.total_pro_votes) + ABS(cd.total_con_votes) + cd.total_comments) *
+                    (1.0 / (1.0 + POWER((julianday('now') - julianday(cd.completed_at)) * 24, 0.5)))
+                ) as temporal_engagement_score
             FROM completed_debates cd
             JOIN topics t ON cd.topic_id = t.id
-            ORDER BY engagement_score DESC, cd.completed_at DESC
+            ORDER BY temporal_engagement_score DESC
             LIMIT ?
         """, (limit,))
 
