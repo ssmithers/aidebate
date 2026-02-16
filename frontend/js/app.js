@@ -163,6 +163,9 @@ function showDebateView() {
     document.getElementById('new-debate-btn').style.display = 'block';
     document.getElementById('export-btn').style.display = 'block';
 
+    // Show glossary sidebar
+    document.getElementById('glossary-sidebar').style.display = 'block';
+
     // Clear conversation window
     DebateUI.clearConversation();
 
@@ -274,6 +277,7 @@ function resetToSetup() {
     document.getElementById('new-debate-btn').style.display = 'none';
     document.getElementById('settings-btn').style.display = 'none';
     document.getElementById('export-btn').style.display = 'none';
+    document.getElementById('glossary-sidebar').style.display = 'none';
 }
 
 /**
