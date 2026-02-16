@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('suggest-modal');
     const btnClose = document.querySelector('.close');
     const btnSubmitTopic = document.getElementById('btn-submit-topic');
-    const topicInput = document.getElementById('topic-input');
+    const topicInput = document.getElementById('suggest-topic-input');
 
     // Generate simple user ID (for demo purposes)
     const userId = localStorage.getItem('user_id') || `user_${Math.random().toString(36).substr(2, 9)}`;
