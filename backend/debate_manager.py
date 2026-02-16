@@ -120,12 +120,12 @@ class DebateManager:
 
         # Process response
         if result["success"]:
-            # Send raw content directly to Opus for formatting
-            # Let Opus handle thinking block removal - it's better at this
-            formatted_content = self._format_through_opus(result["content"], current_speech)
+            # Use local regex cleaning (DALS architecture - free, fast)
+            # Brain's guidance: Don't waste Opus credits on cleaning tasks
+            cleaned_content = self._strip_thinking_blocks(result["content"])
 
             # Extract citations
-            content, citations = extract_citations(formatted_content)
+            content, citations = extract_citations(cleaned_content)
         else:
             content = f"[ERROR: {result['error']}]"
             citations = []
