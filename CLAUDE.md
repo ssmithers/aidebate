@@ -37,7 +37,10 @@ This project was initially built WITHOUT following the DALS workflow (all code w
 
 ### Key Design Decisions
 1. **Sequential LM Studio calls** - Cannot parallelize (LM Studio limitation)
-2. **Opus formatting layer** - All model responses pass through Claude Opus for consistent output
+2. **Opus formatting via DALS bridge** - All model responses pass through Claude Opus for consistent output
+   - Routes through `/Users/ssmithers/Desktop/CODE/dals/bridge.py`
+   - Uses subscription credits FIRST, then API key
+   - Bridge must be running for formatting to work
 3. **Policy debate structure** - 16 speeches (configurable to 8 or 12)
 4. **No framework** - Vanilla JS for simplicity and minimal dependencies
 
@@ -64,7 +67,24 @@ The application offers two models for debating:
 - **Claude Opus 4.6** - Cloud model via Anthropic API (uses monthly credits first)
 - **GLM-4.7-Flash 30B** - Local model via LM Studio (free)
 
-Both models' outputs are formatted by Claude Opus to ensure consistency.
+All debate responses (from any model) are formatted by Claude Opus 4.6 via the DALS bridge to ensure consistency.
+
+### DALS Bridge Requirement
+
+**CRITICAL**: The DALS bridge must be running for Opus formatting to work:
+
+```bash
+# Terminal 1: Start the bridge
+cd /Users/ssmithers/Desktop/CODE/dals
+export ANTHROPIC_API_KEY="your-key"
+./start_bridge.sh
+
+# Terminal 2: Start the debate app
+cd /Users/ssmithers/Desktop/CODE/aidebate
+python3 backend/app.py
+```
+
+The bridge routes Opus requests through subscription credits first, minimizing API costs.
 
 ## Testing
 

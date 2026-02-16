@@ -314,17 +314,19 @@ class DebateManager:
 
     def _format_through_opus(self, raw_content: str, current_speech: dict) -> str:
         """
-        Pass response through Claude Opus for consistent formatting.
+        Pass response through Claude Opus via DALS bridge for consistent formatting.
 
+        Routes through bridge.py to use subscription credits first, then API key.
         This ensures all responses (from any model) are clean, professional,
         and properly formatted for debate display.
         """
-        # DEBUG: Log what we're sending to Opus
-        print(f"\n{'='*80}")
-        print(f"DEBUG: Content sent to Opus for formatting ({current_speech['speech']}):")
-        print(f"{'='*80}")
-        print(raw_content[:500])  # First 500 chars
-        print(f"{'='*80}\n")
+        import hashlib
+        from pathlib import Path
+
+        # Bridge communication files
+        bridge_base = Path("/Users/ssmithers/Desktop/CODE/dals")
+        passon_file = bridge_base / "passon.md"
+        response_file = bridge_base / "response.md"
 
         speech_type = current_speech["type"]
 
@@ -353,26 +355,59 @@ class DebateManager:
                 "Keep any [Source: ...] citations intact."
             )
 
-        formatting_prompt = [
-            {
-                "role": "user",
-                "content": f"{instruction}\n\nRaw content to format:\n\n{raw_content}"
-            }
-        ]
+        # Build request message for bridge
+        request_message = f"{instruction}\n\nRaw content to format:\n\n{raw_content}"
 
-        # Call Opus for formatting (use short max_tokens for efficiency)
-        result = self.client.chat(
-            "claude-opus",
-            formatting_prompt,
-            temperature=0.3,
-            max_tokens=1000
-        )
+        # Helper to get file hash
+        def get_file_hash(path):
+            if not path.exists():
+                return ""
+            return hashlib.md5(path.read_text().encode()).hexdigest()
 
-        if result["success"]:
-            return result["content"].strip()
-        else:
-            # If Opus formatting fails, return the cleaned content
-            return raw_content
+        # Get current response.md hash before writing (to detect updates)
+        old_response_hash = get_file_hash(response_file)
+
+        # Write formatting request to passon.md
+        passon_file.write_text(request_message)
+        print(f"[Bridge] Formatting request sent for {current_speech['speech']}")
+
+        # Wait for response.md to update (poll with timeout)
+        timeout = 60  # seconds
+        poll_interval = 2  # check every 2 seconds
+        elapsed = 0
+
+        while elapsed < timeout:
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+
+            current_hash = get_file_hash(response_file)
+            if current_hash and current_hash != old_response_hash:
+                # Response received from bridge!
+                response_text = response_file.read_text()
+
+                # Strip bridge header and metadata
+                # Format: <!-- OPUS RESPONSE | timestamp -->
+                #         *[Opus 4.6 | X in / Y out tokens]*
+                #
+                #         [actual content]
+                lines = response_text.split('\n')
+                content_lines = []
+
+                for line in lines:
+                    # Skip HTML comments and token usage lines
+                    if line.strip().startswith('<!--') or line.strip().startswith('*[Opus'):
+                        continue
+                    content_lines.append(line)
+
+                formatted_content = '\n'.join(content_lines).strip()
+                print(f"[Bridge] Formatted response received from Opus (via subscription)")
+                return formatted_content
+
+        # Timeout - bridge might not be running
+        print(f"[Bridge] ⚠️  WARNING: No response after {timeout}s")
+        print(f"[Bridge] ⚠️  Is bridge.py running? Check: ps aux | grep bridge.py")
+        print(f"[Bridge] ⚠️  Falling back to unformatted content")
+        return raw_content
 
     def _save_session(self, session: DebateSession):
         """Save session to JSON file."""

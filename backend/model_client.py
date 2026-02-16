@@ -60,93 +60,123 @@ class ModelClient:
             return self._call_lm_studio(model_alias, messages, temperature, max_tokens)
     
     def _call_anthropic(self, model_alias: str, messages: list, temperature: float = None, max_tokens: int = None):
-        """Call Anthropic API (Claude models)."""
-        if not self.anthropic_client:
-            return {
-                "success": False,
-                "content": None,
-                "error": "Anthropic API key not configured. Set ANTHROPIC_API_KEY environment variable.",
-                "latency_ms": 0,
-                "usage": None
-            }
-        
+        """
+        Call Anthropic API (Claude models) via DALS bridge.
+
+        Routes through bridge.py to use subscription credits first, then API key.
+        """
+        import hashlib
+        from pathlib import Path
+
         model_config = self.models[model_alias]
-        model_id = model_config["id"]
-        
+
         temp = temperature if temperature is not None else model_config.get("temperature", 0.7)
         max_tok = max_tokens if max_tokens is not None else model_config.get("max_tokens", 4096)
-        
-        # Convert messages format - Anthropic requires system message separate
+
+        # Bridge communication files
+        bridge_base = Path("/Users/ssmithers/Desktop/CODE/dals")
+        passon_file = bridge_base / "passon.md"
+        response_file = bridge_base / "response.md"
+
+        # Convert messages to simple text format for bridge
+        # Extract system message if present
         system_message = None
-        converted_messages = []
+        conversation = []
 
         for msg in messages:
             if msg["role"] == "system":
                 system_message = msg["content"]
             else:
-                converted_messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"]
-                })
+                role_label = "User" if msg["role"] == "user" else "Assistant"
+                conversation.append(f"{role_label}: {msg['content']}")
 
-        # Anthropic requires at least one message
-        # If only system message exists, create a user message to start the conversation
-        if not converted_messages:
-            converted_messages.append({
-                "role": "user",
-                "content": "Please provide your response."
-            })
+        # Build request message
+        request_parts = []
 
-        # CRITICAL: Anthropic requires conversation to END with user message
-        # Cannot have assistant message as last message (no prefill support for this model)
-        if converted_messages and converted_messages[-1]["role"] == "assistant":
-            converted_messages.append({
-                "role": "user",
-                "content": "Please continue."
-            })
+        if system_message:
+            request_parts.append(f"[System Instructions]\n{system_message}\n")
 
-        try:
-            start_time = time.time()
-            
-            kwargs = {
-                "model": model_id,
-                "max_tokens": max_tok,
-                "temperature": temp,
-                "messages": converted_messages
-            }
-            
-            if system_message:
-                kwargs["system"] = system_message
-            
-            response = self.anthropic_client.messages.create(**kwargs)
-            
-            latency_ms = int((time.time() - start_time) * 1000)
-            
-            # Extract text content
-            content = ""
-            for block in response.content:
-                if block.type == "text":
-                    content += block.text
-            
-            return {
-                "success": True,
-                "content": content,
-                "error": None,
-                "latency_ms": latency_ms,
-                "usage": {
-                    "input_tokens": response.usage.input_tokens,
-                    "output_tokens": response.usage.output_tokens
+        request_parts.append(f"[Conversation Context]\n" + "\n\n".join(conversation))
+        request_parts.append(f"\n[Settings: temperature={temp}, max_tokens={max_tok}]")
+
+        request_message = "\n".join(request_parts)
+
+        # Helper to get file hash
+        def get_file_hash(path):
+            if not path.exists():
+                return ""
+            return hashlib.md5(path.read_text().encode()).hexdigest()
+
+        # Get current response.md hash before writing
+        old_response_hash = get_file_hash(response_file)
+
+        # Write request to passon.md
+        passon_file.write_text(request_message)
+        print(f"[Bridge] Debate request sent to Opus via bridge")
+
+        # Wait for response.md to update (poll with timeout)
+        timeout = 120  # 2 minutes for debate responses (longer than formatting)
+        poll_interval = 2
+        elapsed = 0
+        start_time = time.time()
+
+        while elapsed < timeout:
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+
+            current_hash = get_file_hash(response_file)
+            if current_hash and current_hash != old_response_hash:
+                # Response received!
+                response_text = response_file.read_text()
+
+                # Strip bridge header and metadata
+                lines = response_text.split('\n')
+                content_lines = []
+                usage_info = None
+
+                for line in lines:
+                    # Extract token usage if present
+                    if '*[Opus' in line and 'tokens]*' in line:
+                        # Parse: *[Opus 4.6 | 1234 in / 5678 out tokens]*
+                        import re
+                        match = re.search(r'(\d+) in / (\d+) out', line)
+                        if match:
+                            usage_info = {
+                                "input_tokens": int(match.group(1)),
+                                "output_tokens": int(match.group(2))
+                            }
+                        continue
+
+                    # Skip HTML comments
+                    if line.strip().startswith('<!--'):
+                        continue
+
+                    content_lines.append(line)
+
+                content = '\n'.join(content_lines).strip()
+                latency_ms = int((time.time() - start_time) * 1000)
+
+                print(f"[Bridge] Opus debate response received via bridge (subscription)")
+
+                return {
+                    "success": True,
+                    "content": content,
+                    "error": None,
+                    "latency_ms": latency_ms,
+                    "usage": usage_info
                 }
-            }
-        
-        except Exception as e:
-            return {
-                "success": False,
-                "content": None,
-                "error": str(e),
-                "latency_ms": 0,
-                "usage": None
-            }
+
+        # Timeout
+        print(f"[Bridge] ⚠️  WARNING: No Opus response after {timeout}s")
+        print(f"[Bridge] ⚠️  Is bridge.py running? Check: ps aux | grep bridge.py")
+
+        return {
+            "success": False,
+            "content": None,
+            "error": f"Bridge timeout after {timeout}s. Is bridge.py running?",
+            "latency_ms": 0,
+            "usage": None
+        }
     
     def _call_lm_studio(self, model_alias: str, messages: list, temperature: float = None, max_tokens: int = None):
         """Call LM Studio (local models)."""
