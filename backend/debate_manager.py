@@ -380,34 +380,37 @@ class DebateManager:
 
         if speech_type == "constructive":
             base += (
-                "This is a CONSTRUCTIVE speech. Deliver your arguments directly:\n"
-                "- Introduce NEW arguments supporting your position\n"
-                "- Present evidence and reasoning\n"
-                "- Build your case with clear contentions\n"
+                "This is a CONSTRUCTIVE speech. You must GENERATE original arguments (do NOT extract from previous speeches):\n"
+                "- CREATE NEW arguments supporting your position on this debate topic\n"
+                "- Present evidence and reasoning to support your arguments\n"
+                "- Build your case with 3-5 clear contentions\n"
                 "- Cite sources with DESCRIPTIVE text: [Source: Harvard Medical School 2023 study] or [Source: USDA nutrition database]\n"
                 "  NEVER use just numbers like [Source: 1] - always include the actual source name\n"
-                "- Keep your response concise (aim for 3-5 key points)\n"
-                "- Start immediately with your first argument\n"
+                "- Do NOT say 'I cannot' or provide meta-commentary about the task\n"
+                "- Start immediately with your first argument (no preamble)\n"
             )
 
         elif speech_type == "cx_question":
             base += (
-                "This is CROSS-EXAMINATION. Ask your question directly:\n"
-                "- Ask ONE strategic question to challenge your opponent's case\n"
-                "- Focus on exposing weaknesses or contradictions\n"
-                "- Keep the question clear and direct\n"
-                "- Do NOT answer - only ask the question\n"
-                "- Start immediately with your question\n"
+                "This is CROSS-EXAMINATION. You must GENERATE a question (do NOT extract from previous speeches):\n"
+                "- CREATE ONE strategic question to challenge your opponent's most recent argument\n"
+                "- Your question should expose weaknesses or contradictions in what they just said\n"
+                "- Make your question clear, direct, and challenging\n"
+                "- Do NOT answer the question - only ask it\n"
+                "- Do NOT say 'I cannot' or provide meta-commentary\n"
+                "- Start immediately with your question (no preamble)\n"
+                "Example format: 'You claimed X, but how do you reconcile that with Y?'\n"
             )
 
         elif speech_type == "cx_answer":
             base += (
-                "You are ANSWERING cross-examination. Respond directly:\n"
-                "- Answer the question directly and briefly\n"
-                "- Defend your position\n"
-                "- Clarify any misunderstandings\n"
-                "- Stay focused on the question asked\n"
-                "- Start immediately with your answer\n"
+                "You are ANSWERING cross-examination. You must GENERATE an answer (do NOT extract from previous speeches):\n"
+                "- CREATE a direct answer to the question that was just asked\n"
+                "- Defend your position with brief reasoning\n"
+                "- Clarify any misunderstandings or incorrect assumptions\n"
+                "- Keep your answer focused and concise (2-3 sentences maximum)\n"
+                "- Do NOT say 'I cannot' or provide meta-commentary\n"
+                "- Start immediately with your answer (no preamble)\n"
             )
 
         elif speech_type == "rebuttal":
