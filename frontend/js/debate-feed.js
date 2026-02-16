@@ -266,12 +266,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="debate-speeches-container" id="speeches-container">
                     ${renderSpeeches(debate.speeches, debate.id)}
                 </div>
+                <div id="judgment-section" class="judgment-section">
+                    <!-- Judgment will be loaded here -->
+                </div>
                 <div class="debate-viewer-footer">
                     <div class="debate-totals">
                         <span>Pro Total: ${debate.total_pro_votes || 0} 👍</span>
                         <span>Con Total: ${debate.total_con_votes || 0} 👎</span>
                         <span>${debate.total_comments || 0} Comments</span>
                     </div>
+                    <button class="btn btn-primary get-judgment-btn" data-debate-id="${debate.id}">
+                        🏆 Get AI Judgment
+                    </button>
                 </div>
             </div>
         `;
@@ -285,6 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Attach vote handlers
         attachVoteHandlers(debate.id);
+
+        // Load existing judgments
+        loadJudgments(debate.id);
+
+        // Attach judgment button handler
+        modal.querySelector('.get-judgment-btn').addEventListener('click', async () => {
+            await requestJudgment(debate.id);
+        });
     }
 
     /**
@@ -387,6 +401,127 @@ document.addEventListener('DOMContentLoaded', () => {
             "'": '&#039;'
         };
         return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    /**
+     * Load existing judgments for a debate
+     * Copyright (C) 2026 Stephen F Smithers
+     */
+    async function loadJudgments(debateId) {
+        try {
+            const response = await fetch(`/api/debates/${debateId}/judgments`);
+            if (!response.ok) return; // No judgments yet
+
+            const judgments = await response.json();
+            if (judgments.length > 0) {
+                renderJudgments(judgments);
+            }
+        } catch (error) {
+            console.error('Error loading judgments:', error);
+        }
+    }
+
+    /**
+     * Request AI judgment for a debate
+     * Copyright (C) 2026 Stephen F Smithers
+     */
+    async function requestJudgment(debateId) {
+        const button = document.querySelector('.get-judgment-btn');
+        const originalText = button.textContent;
+
+        try {
+            button.textContent = '⏳ Judging...';
+            button.disabled = true;
+
+            const response = await fetch(`/api/debates/${debateId}/judge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ judge_model: 'claude-opus-4-6' })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to get judgment');
+            }
+
+            const judgment = await response.json();
+
+            // Reload all judgments to display
+            await loadJudgments(debateId);
+
+            button.textContent = '✅ Judged!';
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+            }, 2000);
+
+        } catch (error) {
+            console.error('Error requesting judgment:', error);
+            alert(`Failed to get judgment: ${error.message}`);
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    }
+
+    /**
+     * Render judgment results in the viewer
+     * Copyright (C) 2026 Stephen F Smithers
+     */
+    function renderJudgments(judgments) {
+        const container = document.getElementById('judgment-section');
+        if (!container) return;
+
+        container.innerHTML = judgments.map(judgment => {
+            const winnerLabel = judgment.winner === 'tie' ? 'Tie' :
+                               judgment.winner.toUpperCase();
+            const winnerClass = judgment.winner === 'tie' ? 'tie' : judgment.winner;
+            const confidence = Math.round(judgment.confidence * 100);
+
+            // Parse criteria scores if available
+            let criteriaHTML = '';
+            if (judgment.criteria_scores) {
+                const scores = typeof judgment.criteria_scores === 'string'
+                    ? JSON.parse(judgment.criteria_scores)
+                    : judgment.criteria_scores;
+
+                criteriaHTML = `
+                    <div class="criteria-scores">
+                        <h4>Criteria Breakdown:</h4>
+                        ${Object.entries(scores).map(([criterion, values]) => {
+                            if (typeof values === 'object' && values.pro !== undefined) {
+                                return `
+                                    <div class="criterion-row">
+                                        <span class="criterion-name">${criterion.replace(/_/g, ' ')}</span>
+                                        <span class="criterion-scores">Pro: ${values.pro} | Con: ${values.con}</span>
+                                    </div>
+                                `;
+                            }
+                            return '';
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="judgment-card">
+                    <div class="judgment-header">
+                        <h3>🏆 AI Judge: ${escapeHtml(judgment.judge_model)}</h3>
+                        <div class="judgment-meta">
+                            <span class="judgment-winner ${winnerClass}">Winner: ${winnerLabel}</span>
+                            <span class="judgment-confidence">Confidence: ${confidence}%</span>
+                        </div>
+                    </div>
+                    <div class="judgment-reasoning">
+                        <h4>Reasoning:</h4>
+                        <p>${escapeHtml(judgment.reasoning)}</p>
+                    </div>
+                    ${criteriaHTML}
+                    <div class="judgment-timestamp">
+                        Judged: ${new Date(judgment.judged_at).toLocaleString()}
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
     /**

@@ -1396,4 +1396,143 @@ sup {
     flex: 1;
 }
 
+/* Judgment Section */
+.judgment-section {
+    margin: 2rem 0;
+    padding: 0 1rem;
+}
+
+.judgment-card {
+    background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+    border: 2px solid #89b4fa;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 24px rgba(137, 180, 250, 0.2);
+}
+
+.judgment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.judgment-header h3 {
+    color: #89b4fa;
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.judgment-meta {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.judgment-winner {
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    text-transform: uppercase;
+}
+
+.judgment-winner.pro {
+    background: rgba(166, 227, 161, 0.2);
+    color: #a6e3a1;
+    border: 2px solid #a6e3a1;
+}
+
+.judgment-winner.con {
+    background: rgba(243, 139, 168, 0.2);
+    color: #f38ba8;
+    border: 2px solid #f38ba8;
+}
+
+.judgment-winner.tie {
+    background: rgba(249, 226, 175, 0.2);
+    color: #f9e2af;
+    border: 2px solid #f9e2af;
+}
+
+.judgment-confidence {
+    color: #cdd6f4;
+    font-weight: 600;
+    background: rgba(137, 180, 250, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+}
+
+.judgment-reasoning {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-left: 4px solid #89b4fa;
+    border-radius: 0.5rem;
+}
+
+.judgment-reasoning h4 {
+    color: #89b4fa;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.judgment-reasoning p {
+    color: #cdd6f4;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.criteria-scores {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0.5rem;
+}
+
+.criteria-scores h4 {
+    color: #89b4fa;
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.criterion-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.25rem;
+}
+
+.criterion-name {
+    color: #cdd6f4;
+    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.criterion-scores {
+    color: #a6e3a1;
+    font-weight: 600;
+}
+
+.judgment-timestamp {
+    text-align: right;
+    color: #7f849c;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+.get-judgment-btn {
+    margin-left: auto;
+}
+
+.get-judgment-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* Copyright (C) 2026 Stephen F Smithers. All Rights Reserved. */

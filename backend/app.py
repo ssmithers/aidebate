@@ -15,6 +15,7 @@ from backend.community_routes import community_bp
 from backend.community_db import create_tables
 from backend.debate_engagement_routes import engagement_bp
 from backend.debate_engagement_db import create_engagement_tables
+from backend.judge_routes import judge_bp
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 # Restrict CORS to prevent CSRF attacks (Copyright 2026 Stephen F Smithers)
@@ -29,6 +30,9 @@ app.register_blueprint(community_bp)
 
 # Register engagement routes (Copyright 2026 Stephen F Smithers)
 app.register_blueprint(engagement_bp)
+
+# Register judge routes (Copyright 2026 Stephen F Smithers)
+app.register_blueprint(judge_bp)
 
 # Initialize community database
 create_tables()
