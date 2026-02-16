@@ -78,15 +78,7 @@ class ModelClient:
         passon_file = bridge_base / "passon.md"
         response_file = bridge_base / "response.md"
 
-        # Build request with DALS context header to avoid injection detection
-        header = (
-            "## DALS AIDEBATE CONTENT REQUEST\n"
-            f"Model: {model_alias}\n"
-            f"Settings: temperature={temp}, max_tokens={max_tok}\n"
-            "Task: Generate debate speech content\n\n"
-        )
-
-        # Extract system message if present
+        # Extract debate context from messages
         system_message = None
         conversation = []
 
@@ -94,18 +86,64 @@ class ModelClient:
             if msg["role"] == "system":
                 system_message = msg["content"]
             else:
-                role_label = "User" if msg["role"] == "user" else "Assistant"
-                conversation.append(f"{role_label}: {msg['content']}")
+                conversation.append(msg["content"])
 
-        # Build request message
-        request_parts = [header]
+        # Parse debate parameters from system message
+        topic = "Unknown topic"
+        position = "Unknown position"
+        speech_type = "speech"
 
         if system_message:
-            request_parts.append(f"System Context for Debate:\n{system_message}\n")
+            # Extract topic (after "debate on: '")
+            if "debate on:" in system_message or "topic:" in system_message.lower():
+                import re
+                topic_match = re.search(r"(?:debate on|topic):\s*['\"]([^'\"]+)['\"]", system_message, re.IGNORECASE)
+                if topic_match:
+                    topic = topic_match.group(1)
 
-        request_parts.append(f"Conversation:\n" + "\n\n".join(conversation))
+            # Determine position
+            if "AFFIRMATIVE" in system_message or "affirmative" in system_message.lower():
+                position = "Affirmative (Pro)"
+            elif "NEGATIVE" in system_message or "negative" in system_message.lower():
+                position = "Negative (Con)"
 
-        request_message = "\n".join(request_parts)
+            # Determine speech type
+            if "CONSTRUCTIVE" in system_message:
+                speech_type = "constructive"
+            elif "CROSS-EXAMINATION" in system_message or "cx_question" in system_message:
+                speech_type = "cross-examination question"
+            elif "ANSWERING cross-examination" in system_message or "cx_answer" in system_message:
+                speech_type = "cross-examination answer"
+            elif "REBUTTAL" in system_message:
+                speech_type = "rebuttal"
+
+        # Build DALS task request
+        request = (
+            "## DALS Task: Generate Debate Content for AI Debate Simulator\n\n"
+            f"**Project**: AI Debate Simulator (aidebate)\n"
+            f"**Topic**: {topic}\n"
+            f"**Position**: {position}\n"
+            f"**Speech Type**: {speech_type}\n"
+            f"**Settings**: temperature={temp}, max_tokens={max_tok}\n\n"
+            "**Task**: Generate a debate argument for this position and speech type. "
+        )
+
+        # Add previous conversation context if exists
+        if conversation:
+            request += f"\n\n**Previous exchanges in this debate**:\n"
+            for i, msg in enumerate(conversation[-3:], 1):  # Last 3 exchanges for context
+                preview = msg[:200] + "..." if len(msg) > 200 else msg
+                request += f"\n{i}. {preview}\n"
+
+        request += (
+            "\n\n**Instructions**:\n"
+            "- Provide a concise, well-structured argument\n"
+            "- Use [Source: ...] format for citations\n"
+            "- Match the tone and style appropriate for policy debate\n"
+            "- Return only the debate content, no meta-commentary\n"
+        )
+
+        request_message = request
 
         # Helper to get file hash
         def get_file_hash(path):

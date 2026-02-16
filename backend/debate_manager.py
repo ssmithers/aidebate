@@ -330,39 +330,39 @@ class DebateManager:
 
         speech_type = current_speech["type"]
 
-        # Create formatting prompt with clear DALS context marker
-        header = (
-            "## DALS AIDEBATE FORMATTING REQUEST\n"
-            f"Speech: {current_speech['speech']} ({speech_type})\n"
-            "Task: Clean and format debate speech output\n\n"
-        )
-
-        # Instruction based on speech type
+        # Determine cleaning requirements based on speech type
         if speech_type == "constructive":
-            instruction = (
-                "The text below is a constructive debate argument that may contain thinking blocks, "
-                "planning notes, or meta-commentary. Please clean it to show only the actual argument "
-                "with clear paragraphs. Preserve [Source: ...] citations."
-            )
+            content_description = "constructive debate argument"
+            expected_output = "3-5 paragraph argument with contentions"
         elif speech_type == "cx_question":
-            instruction = (
-                "The text below is a cross-examination question that may contain planning notes. "
-                "Please extract only the actual question being asked, formatted as 1-2 clear sentences."
-            )
+            content_description = "cross-examination question"
+            expected_output = "1-2 direct questions"
         elif speech_type == "cx_answer":
-            instruction = (
-                "The text below is a cross-examination answer that may contain planning notes. "
-                "Please extract only the actual answer, formatted clearly in 1-2 paragraphs."
-            )
+            content_description = "cross-examination answer"
+            expected_output = "1-2 paragraph response"
         else:  # rebuttal
-            instruction = (
-                "The text below is a rebuttal speech that may contain planning notes or thinking blocks. "
-                "Please clean it to show only the actual rebuttal arguments with clear paragraphs. "
-                "Preserve [Source: ...] citations."
-            )
+            content_description = "rebuttal speech"
+            expected_output = "2-4 paragraph rebuttal with refutations"
 
-        # Build request message for bridge with clear context
-        request_message = f"{header}{instruction}\n\n---\nRaw Output:\n{raw_content}"
+        # Build DALS task request for formatting
+        request_message = (
+            "## DALS Task: Clean LM Studio Output for AI Debate Simulator\n\n"
+            f"**Project**: AI Debate Simulator (aidebate)\n"
+            f"**Speech**: {current_speech['speech']} ({content_description})\n"
+            f"**Source Model**: GLM-4.7-Flash via LM Studio\n\n"
+            "**Task**: The text below is raw output from a local LLM that contains thinking blocks, "
+            "numbered analysis sections, and meta-commentary. Please extract and format only the actual "
+            f"debate content as a clean {expected_output}.\n\n"
+            "**Cleaning Requirements**:\n"
+            "- Remove all thinking blocks (e.g., '1. **Analyze:**', '<think>', numbered planning sections)\n"
+            "- Remove meta-commentary about how arguments are constructed\n"
+            "- Preserve [Source: ...] citations exactly as written\n"
+            "- Format as clear, readable paragraphs\n"
+            "- Return ONLY the cleaned debate content\n\n"
+            f"**Expected Output Format**: {expected_output}\n\n"
+            "---\n\n"
+            f"**Raw LM Studio Output**:\n\n{raw_content}"
+        )
 
         # Helper to get file hash
         def get_file_hash(path):
