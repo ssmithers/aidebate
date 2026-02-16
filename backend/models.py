@@ -48,3 +48,4 @@ class DebateSession(BaseModel):
     settings: dict
     status: str
     usage_log: list[ModelUsage] = []  # Track all model API calls
+    topic_id: int = 0  # Community topic ID (0 for manual debates)

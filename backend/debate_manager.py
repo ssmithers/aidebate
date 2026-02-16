@@ -9,6 +9,13 @@ from .models import DebateSession, DebateTurn, DebateResponse, ModelUsage
 from .citation_processor import extract_citations
 from .model_client import ModelClient
 
+# Engagement system integration (Copyright 2026 Stephen F Smithers)
+from .debate_engagement_db import (
+    add_completed_debate,
+    add_speech,
+    create_engagement_tables
+)
+
 
 class DebateManager:
     def __init__(self, sessions_dir: Path):
@@ -38,7 +45,7 @@ class DebateManager:
             {"speech": "Negative Closing", "type": "closing", "side": "neg", "speaker": "2N", "duration": 60},
         ]
 
-    def start_debate(self, topic: str, model1: str, model2: str, model1_position: str, num_speeches: int = 18) -> DebateSession:
+    def start_debate(self, topic: str, model1: str, model2: str, model1_position: str, num_speeches: int = 18, topic_id: int = 0) -> DebateSession:
         """
         Create a new policy debate session.
 
@@ -48,6 +55,7 @@ class DebateManager:
             model2: Second model alias
             model1_position: Speaker position for model1 ("2A/1N" or "2N/1A")
             num_speeches: Number of speeches (ignored - always uses 18: full policy debate + closing arguments)
+            topic_id: Community topic ID (0 for manual debates)
 
         Returns:
             DebateSession object
@@ -77,7 +85,8 @@ class DebateManager:
             debate_flow=debate_flow,
             turns=[],
             settings={"temperature": 0.3, "max_tokens": 16384},  # Allow full-length arguments
-            status="active"
+            status="active",
+            topic_id=topic_id  # Store for engagement system integration
         )
 
         self._save_session(session)
@@ -196,9 +205,44 @@ class DebateManager:
         return turn
     
     def end_topic(self, session_id: str) -> DebateSession:
-        """Mark session as completed."""
+        """
+        Mark session as completed and save to engagement system.
+
+        PATENT INTEGRATION: Saves debate to engagement tables for
+        community voting and temporal metrics (Claims #5, #6).
+
+        Copyright (C) 2026 Stephen F Smithers
+        """
         session = self._load_session(session_id)
         session.status = "completed"
+
+        # Save to engagement system for community voting
+        try:
+            # Get topic_id if available (otherwise use 0 for manual debates)
+            topic_id = getattr(session, 'topic_id', 0)
+
+            # Create debate record
+            debate_id = add_completed_debate(
+                topic_id=topic_id,
+                job_id=0,  # No job_id for manual debates
+                pro_model=session.models.get('aff', 'unknown'),
+                con_model=session.models.get('neg', 'unknown')
+            )
+
+            # Save all speeches to engagement system
+            for turn in session.turns:
+                for response in turn.responses:
+                    add_speech(
+                        debate_id=debate_id,
+                        speech_type=turn.speech_name,
+                        side=response.stance,
+                        content=response.content
+                    )
+
+            print(f"[ENGAGEMENT] Saved debate {debate_id} with {len(session.turns)} speeches")
+        except Exception as e:
+            print(f"[ENGAGEMENT ERROR] Failed to save debate: {e}")
+
         self._save_session(session)
         return session
 

@@ -13,9 +13,8 @@
             <nav>
                 <div class="logo">AI Debate Simulator</div>
                 <div class="header-controls">
-                    <button id="new-debate-btn" class="btn btn-secondary" style="display: none;">New Debate</button>
-                    <button id="settings-btn" class="btn btn-secondary" style="display: none;">Settings</button>
-                    <button id="export-btn" class="btn btn-secondary" style="display: none;">Export</button>
+                    <button id="configure-debate-btn" class="btn btn-primary">⚙️ Configure Debate</button>
+                    <button id="back-to-home-btn" class="btn btn-secondary" style="display: none;">← Back to Home</button>
                 </div>
             </nav>
         </div>
@@ -23,42 +22,54 @@
 
     <!-- Main Content -->
     <main class="container">
-        <!-- Top Debates Section -->
-        <!-- Copyright (C) 2026 Stephen F Smithers -->
-        <section id="top-debates" class="top-debates-section">
-            <div class="section-header">
-                <h2>🏆 Top Debates</h2>
-                <p class="section-subtitle">Most engaging debates by community vote</p>
-            </div>
-            <div id="top-debates-section" class="debate-feed featured-feed">
-                <p style="color: #a6adc8; text-align: center;">Loading top debates...</p>
-            </div>
-        </section>
+        <!-- Landing Page Content -->
+        <div id="landing-page">
+            <!-- Two-column layout: Debates on left, Community on right -->
+            <div class="main-layout">
+            <!-- Left Column - Debates -->
+            <div class="debates-column">
+                <!-- Top Debates Section -->
+                <!-- Copyright (C) 2026 Stephen F Smithers -->
+                <section id="top-debates" class="top-debates-section">
+                    <div class="section-header">
+                        <h3>🏆 Top Debates</h3>
+                        <p class="section-subtitle">Most engaging by community vote</p>
+                    </div>
+                    <div id="top-debates-section" class="debate-feed featured-feed">
+                        <p style="color: #a6adc8; text-align: center;">Loading top debates...</p>
+                    </div>
+                </section>
 
-        <!-- Recent Debates Section -->
-        <!-- Patent Claim #5, #6 - Stephen F Smithers -->
-        <section id="recent-debates" class="recent-debates-section">
-            <div class="section-header">
-                <h2>⏰ Recent Debates</h2>
-                <p class="section-subtitle">Latest completed debates</p>
-            </div>
-            <div id="recent-debates-section" class="debate-feed recent-feed">
-                <p style="color: #a6adc8; text-align: center;">Loading recent debates...</p>
-            </div>
-        </section>
-
-        <!-- Community Topics Section -->
-        <section id="community-section" class="community-section">
-            <div class="community-header">
-                <h2>Community Topics</h2>
-                <button id="btn-suggest" class="btn btn-primary">Suggest Topic</button>
+                <!-- Recent Debates Section -->
+                <!-- Patent Claim #5, #6 - Stephen F Smithers -->
+                <section id="recent-debates" class="recent-debates-section">
+                    <div class="section-header">
+                        <h3>⏰ Recent Debates</h3>
+                        <p class="section-subtitle">Latest completed</p>
+                    </div>
+                    <div id="recent-debates-section" class="debate-feed recent-feed">
+                        <p style="color: #a6adc8; text-align: center;">Loading recent debates...</p>
+                    </div>
+                </section>
             </div>
 
-            <div id="topic-feed" class="topic-feed">
-                <!-- Topics will be injected here -->
-                <p style="color: #a6adc8; text-align: center;">Loading topics...</p>
+            <!-- Right Column - Community Topics -->
+            <div class="community-column">
+                <section id="community-section" class="community-section">
+                    <div class="community-header">
+                        <h3>Community Topics</h3>
+                        <button id="btn-suggest" class="btn btn-primary btn-sm">Suggest Topic</button>
+                    </div>
+
+                    <div id="topic-feed" class="topic-feed">
+                        <!-- Topics will be injected here -->
+                        <p style="color: #a6adc8; text-align: center;">Loading topics...</p>
+                    </div>
+                </section>
             </div>
-        </section>
+        </div>
+        </div>
+        <!-- End Landing Page -->
 
         <!-- Suggest Topic Modal -->
         <div id="suggest-modal" class="modal">
@@ -71,8 +82,8 @@
             </div>
         </div>
 
-        <!-- Setup Panel (shown on load) -->
-        <div id="setup-panel" class="setup-panel">
+        <!-- Setup Panel (hidden by default) -->
+        <div id="setup-panel" class="setup-panel" style="display: none;">
             <div class="setup-card">
                 <h1>Configure Policy Debate</h1>
                 <p>Formal policy debate structure with constructive speeches, cross-examinations, and rebuttals.</p>

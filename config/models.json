@@ -5,14 +5,15 @@
       "id": "claude-opus-4-6",
       "type": "anthropic",
       "temperature": 0.7,
-      "max_tokens": 2048,
-      "name": "Claude Opus 4.6"
+      "max_tokens": 16384,
+      "name": "Claude Opus 4.6",
+      "note": "SUBSCRIPTION ONLY - uses monthly credits, never API key"
     },
     "glm-flash": {
       "id": "zai-org/glm-4.7-flash",
       "type": "lm_studio",
       "temperature": 0.3,
-      "max_tokens": 2048,
+      "max_tokens": 16384,
       "name": "GLM-4.7-Flash 30B"
     }
   },

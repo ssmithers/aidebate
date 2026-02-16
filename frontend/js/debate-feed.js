@@ -73,45 +73,55 @@ document.addEventListener('DOMContentLoaded', () => {
             const proVotes = debate.total_pro_votes || 0;
             const conVotes = debate.total_con_votes || 0;
             const comments = debate.total_comments || 0;
-            const engagement = debate.engagement_score || 0;
+            const topic = debate.topic_title;
 
-            // Determine winner
-            let winner = 'Tie';
-            let winnerClass = 'tie';
-            if (proVotes > conVotes) {
-                winner = 'Pro Side Won';
-                winnerClass = 'pro-win';
-            } else if (conVotes > proVotes) {
-                winner = 'Con Side Won';
-                winnerClass = 'con-win';
+            // Determine debate type: "X vs Y" or Yes/No question
+            const isVersusDebate = topic.toLowerCase().includes(' vs ') || topic.toLowerCase().includes(' versus ');
+
+            let voteDisplay = '';
+
+            if (isVersusDebate) {
+                // Split on " vs " or " versus "
+                const parts = topic.split(/\s+vs\.?\s+|\s+versus\s+/i);
+                const side1 = parts[0] ? escapeHtml(parts[0].trim()) : 'Pro';
+                const side2 = parts[1] ? escapeHtml(parts[1].trim()) : 'Con';
+
+                voteDisplay = `
+                    <div class="debate-versus">
+                        <div class="versus-side">
+                            <div class="versus-label">${side1}</div>
+                            <div class="versus-votes">👍 ${proVotes}</div>
+                        </div>
+                        <div class="versus-side">
+                            <div class="versus-label">${side2}</div>
+                            <div class="versus-votes">👍 ${conVotes}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Yes/No question format
+                voteDisplay = `
+                    <h4 class="debate-title">${escapeHtml(topic)}</h4>
+                    <div class="debate-yesno">
+                        <div class="yesno-option">
+                            <span class="yesno-label">Yes</span>
+                            <span class="yesno-votes">👍 ${proVotes}</span>
+                        </div>
+                        <div class="yesno-option">
+                            <span class="yesno-label">No</span>
+                            <span class="yesno-votes">👎 ${conVotes}</span>
+                        </div>
+                    </div>
+                `;
             }
 
             const card = document.createElement('div');
             card.className = 'debate-card featured';
             card.innerHTML = `
                 <div class="debate-rank">#${index + 1}</div>
-                <h3 class="debate-title">${escapeHtml(debate.topic_title)}</h3>
-                <div class="debate-models">
-                    <span class="model-tag pro">${escapeHtml(debate.pro_model)}</span>
-                    <span>vs</span>
-                    <span class="model-tag con">${escapeHtml(debate.con_model)}</span>
-                </div>
-                <div class="debate-stats">
-                    <div class="stat">
-                        <span class="stat-icon">👍</span>
-                        <span class="stat-label">Pro: ${proVotes}</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-icon">👎</span>
-                        <span class="stat-label">Con: ${conVotes}</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-icon">💬</span>
-                        <span class="stat-label">${comments} comments</span>
-                    </div>
-                </div>
-                <div class="debate-winner ${winnerClass}">${winner}</div>
-                <button class="btn btn-primary view-debate-btn" data-debate-id="${debate.id}">View Debate</button>
+                ${voteDisplay}
+                ${comments > 0 ? `<div class="comment-count">💬 ${comments}</div>` : ''}
+                <button class="btn btn-secondary btn-sm view-debate-btn" data-debate-id="${debate.id}">View</button>
             `;
 
             topDebatesSection.appendChild(card);
@@ -142,21 +152,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const proVotes = debate.total_pro_votes || 0;
             const conVotes = debate.total_con_votes || 0;
             const comments = debate.total_comments || 0;
+            const topic = debate.topic_title;
 
             const date = new Date(debate.completed_at);
-            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            // Determine debate type
+            const isVersusDebate = topic.toLowerCase().includes(' vs ') || topic.toLowerCase().includes(' versus ');
+
+            let statsDisplay = '';
+            if (isVersusDebate) {
+                const parts = topic.split(/\s+vs\.?\s+|\s+versus\s+/i);
+                const side1 = parts[0] ? parts[0].trim() : 'Pro';
+                const side2 = parts[1] ? parts[1].trim() : 'Con';
+                statsDisplay = `<span>${side1}: ${proVotes} 👍</span> <span>${side2}: ${conVotes} 👍</span>`;
+            } else {
+                statsDisplay = `<span>Yes: ${proVotes} 👍</span> <span>No: ${conVotes} 👎</span>`;
+            }
 
             const card = document.createElement('div');
             card.className = 'debate-card compact';
             card.innerHTML = `
                 <div class="debate-header-compact">
-                    <h4 class="debate-title-compact">${escapeHtml(debate.topic_title)}</h4>
+                    <h4 class="debate-title-compact">${escapeHtml(topic)}</h4>
                     <span class="debate-date">${dateStr}</span>
                 </div>
                 <div class="debate-stats-compact">
-                    <span>Pro: ${proVotes} 👍</span>
-                    <span>Con: ${conVotes} 👎</span>
-                    <span>${comments} 💬</span>
+                    ${statsDisplay}
+                    ${comments > 0 ? `<span>${comments} 💬</span>` : ''}
                 </div>
                 <button class="btn btn-secondary btn-sm view-debate-btn" data-debate-id="${debate.id}">View</button>
             `;

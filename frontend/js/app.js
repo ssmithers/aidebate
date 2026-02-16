@@ -51,6 +51,22 @@ function setupFormValidation() {
  * Setup event listeners
  */
 function setupEventListeners() {
+    // Configure Debate button (show setup panel)
+    document.getElementById('configure-debate-btn').addEventListener('click', () => {
+        document.getElementById('landing-page').style.display = 'none';
+        document.getElementById('setup-panel').style.display = 'block';
+        document.getElementById('configure-debate-btn').style.display = 'none';
+        document.getElementById('back-to-home-btn').style.display = 'inline-block';
+    });
+
+    // Back to Home button (show landing page)
+    document.getElementById('back-to-home-btn').addEventListener('click', () => {
+        document.getElementById('landing-page').style.display = 'block';
+        document.getElementById('setup-panel').style.display = 'none';
+        document.getElementById('configure-debate-btn').style.display = 'inline-block';
+        document.getElementById('back-to-home-btn').style.display = 'none';
+    });
+
     // Start debate button
     document.getElementById('start-debate-btn').addEventListener('click', startNewDebate);
 
