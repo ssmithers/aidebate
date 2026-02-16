@@ -330,33 +330,39 @@ class DebateManager:
 
         speech_type = current_speech["type"]
 
-        # Create formatting prompt based on speech type
+        # Create formatting prompt with clear DALS context marker
+        header = (
+            "## DALS AIDEBATE FORMATTING REQUEST\n"
+            f"Speech: {current_speech['speech']} ({speech_type})\n"
+            "Task: Clean and format debate speech output\n\n"
+        )
+
+        # Instruction based on speech type
         if speech_type == "constructive":
             instruction = (
-                "Extract and format the debate argument. Remove any planning notes, "
-                "thinking markers, or meta-commentary. Return ONLY the actual argument "
-                "with clear paragraphs. Keep any [Source: ...] citations intact."
+                "The text below is a constructive debate argument that may contain thinking blocks, "
+                "planning notes, or meta-commentary. Please clean it to show only the actual argument "
+                "with clear paragraphs. Preserve [Source: ...] citations."
             )
         elif speech_type == "cx_question":
             instruction = (
-                "Extract and format the cross-examination question. Remove any planning "
-                "notes or strategic analysis. Return ONLY the actual question being asked, "
-                "formatted as 1-2 clear, direct sentences."
+                "The text below is a cross-examination question that may contain planning notes. "
+                "Please extract only the actual question being asked, formatted as 1-2 clear sentences."
             )
         elif speech_type == "cx_answer":
             instruction = (
-                "Extract and format the cross-examination answer. Remove any planning "
-                "notes. Return ONLY the actual answer, formatted clearly in 1-2 paragraphs."
+                "The text below is a cross-examination answer that may contain planning notes. "
+                "Please extract only the actual answer, formatted clearly in 1-2 paragraphs."
             )
         else:  # rebuttal
             instruction = (
-                "Extract and format the rebuttal. Remove any planning notes or analysis. "
-                "Return ONLY the actual rebuttal arguments with clear paragraphs. "
-                "Keep any [Source: ...] citations intact."
+                "The text below is a rebuttal speech that may contain planning notes or thinking blocks. "
+                "Please clean it to show only the actual rebuttal arguments with clear paragraphs. "
+                "Preserve [Source: ...] citations."
             )
 
-        # Build request message for bridge
-        request_message = f"{instruction}\n\nRaw content to format:\n\n{raw_content}"
+        # Build request message for bridge with clear context
+        request_message = f"{header}{instruction}\n\n---\nRaw Output:\n{raw_content}"
 
         # Helper to get file hash
         def get_file_hash(path):
