@@ -4,8 +4,7 @@
 let currentSession = null;
 let debateSettings = {
     temperature: 0.3,
-    max_tokens: 512,  // ~1 minute speeches
-    num_speeches: 16  // Full policy debate
+    max_tokens: 2048  // 4 minute speeches - full arguments
 };
 
 // Initialize app
@@ -106,18 +105,16 @@ async function startNewDebate() {
     // Read settings from form
     const temperature = parseFloat(document.getElementById('temperature-input').value);
     const maxTokens = parseInt(document.getElementById('max-tokens-input').value);
-    const numSpeeches = parseInt(document.getElementById('num-speeches-input').value);
-
     // Update debateSettings for this session
-    debateSettings = { temperature, max_tokens: maxTokens, num_speeches: numSpeeches };
+    debateSettings = { temperature, max_tokens: maxTokens };
 
     try {
         // Show loading
         document.getElementById('start-debate-btn').disabled = true;
         document.getElementById('start-debate-btn').textContent = 'Starting...';
 
-        // Start debate with settings from form
-        currentSession = await API.startDebate(topic, model1, model2, model1Position, numSpeeches);
+        // Start debate with settings from form (always 16 speeches - full policy debate)
+        currentSession = await API.startDebate(topic, model1, model2, model1Position, 16);
 
         // Show debate view
         showDebateView();
@@ -286,7 +283,6 @@ function resetToSetup() {
 function openSettingsModal() {
     document.getElementById('temperature-input').value = debateSettings.temperature;
     document.getElementById('max-tokens-input').value = debateSettings.max_tokens;
-    document.getElementById('num-speeches-input').value = debateSettings.num_speeches;
     document.getElementById('settings-modal').style.display = 'block';
 }
 
@@ -303,7 +299,6 @@ function closeSettingsModal() {
 function saveSettings() {
     debateSettings.temperature = parseFloat(document.getElementById('temperature-input').value);
     debateSettings.max_tokens = parseInt(document.getElementById('max-tokens-input').value);
-    debateSettings.num_speeches = parseInt(document.getElementById('num-speeches-input').value);
     closeSettingsModal();
     alert('Settings saved! They will apply to new debates (current debate will continue with original settings).');
 }

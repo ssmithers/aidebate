@@ -44,7 +44,7 @@ class DebateManager:
             model1: First model alias
             model2: Second model alias
             model1_position: Speaker position for model1 ("2A/1N" or "2N/1A")
-            num_speeches: Number of speeches (8, 12, or 16)
+            num_speeches: Number of speeches (ignored - always uses 16)
 
         Returns:
             DebateSession object
@@ -61,11 +61,8 @@ class DebateManager:
             models = {"aff": model2, "neg": model1}
             speaker_positions = {"model1": "2N/1A", "model2": "2A/1N"}
 
-        # Generate debate flow based on num_speeches
-        # 8 speeches = constructives + cross-ex (first 12 items)
-        # 12 speeches = constructives + cross-ex + 1NR/1AR (first 14 items)
-        # 16 speeches = full policy debate (all items)
-        debate_flow = self.policy_debate_flow[:num_speeches]
+        # Always use full 16-speech policy debate flow
+        debate_flow = self.policy_debate_flow
 
         session = DebateSession(
             session_id=session_id,
@@ -76,7 +73,7 @@ class DebateManager:
             current_speech_index=0,
             debate_flow=debate_flow,
             turns=[],
-            settings={"temperature": 0.3, "max_tokens": 512},  # ~1 min response
+            settings={"temperature": 0.3, "max_tokens": 2048},  # 4 min speeches
             status="active"
         )
 
@@ -123,11 +120,9 @@ class DebateManager:
 
         # Process response
         if result["success"]:
-            # First strip thinking blocks
-            clean_content = self._strip_thinking_blocks(result["content"])
-
-            # Then format through Opus for consistency
-            formatted_content = self._format_through_opus(clean_content, current_speech)
+            # Send raw content directly to Opus for formatting
+            # Let Opus handle thinking block removal - it's better at this
+            formatted_content = self._format_through_opus(result["content"], current_speech)
 
             # Extract citations
             content, citations = extract_citations(formatted_content)
@@ -324,6 +319,13 @@ class DebateManager:
         This ensures all responses (from any model) are clean, professional,
         and properly formatted for debate display.
         """
+        # DEBUG: Log what we're sending to Opus
+        print(f"\n{'='*80}")
+        print(f"DEBUG: Content sent to Opus for formatting ({current_speech['speech']}):")
+        print(f"{'='*80}")
+        print(raw_content[:500])  # First 500 chars
+        print(f"{'='*80}\n")
+
         speech_type = current_speech["type"]
 
         # Create formatting prompt based on speech type

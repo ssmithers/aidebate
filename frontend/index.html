@@ -76,22 +76,10 @@
                 <div class="form-group">
                     <label for="max-tokens-input">Max Tokens (Speech Length):</label>
                     <input type="number" id="max-tokens-input" class="input-field"
-                           value="512" min="128" max="2048" step="128">
+                           value="2048" min="512" max="4096" step="256">
                     <small style="color: #6c757d; display: block; margin-top: 0.25rem;">
-                        Maximum length of each speech. ~512 tokens ≈ 1 minute.
-                        <strong>512 = 1 min</strong>, 1024 = 2 min, 2048 = 4 min.
-                    </small>
-                </div>
-
-                <div class="form-group">
-                    <label for="num-speeches-input">Number of Speeches:</label>
-                    <select id="num-speeches-input" class="input-field">
-                        <option value="8">8 Speeches (Constructives + Cross-Ex Only)</option>
-                        <option value="12">12 Speeches (+ First Rebuttals)</option>
-                        <option value="16" selected>16 Speeches (Full Policy Debate)</option>
-                    </select>
-                    <small style="color: #6c757d; display: block; margin-top: 0.25rem;">
-                        <strong>8</strong> = Quick debate, <strong>12</strong> = Medium, <strong>16</strong> = Full.
+                        Maximum length of each speech. <strong>2048 tokens ≈ 4 minutes</strong> (recommended for full arguments).
+                        1024 = 2 min, 2048 = 4 min, 4096 = 8 min.
                     </small>
                 </div>
 
