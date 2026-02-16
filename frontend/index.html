@@ -23,6 +23,30 @@
 
     <!-- Main Content -->
     <main class="container">
+        <!-- Community Topics Section -->
+        <section id="community-section" class="community-section">
+            <div class="community-header">
+                <h2>Community Topics</h2>
+                <button id="btn-suggest" class="btn btn-primary">Suggest Topic</button>
+            </div>
+
+            <div id="topic-feed" class="topic-feed">
+                <!-- Topics will be injected here -->
+                <p style="color: #a6adc8; text-align: center;">Loading topics...</p>
+            </div>
+        </section>
+
+        <!-- Suggest Topic Modal -->
+        <div id="suggest-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Suggest a New Topic</h3>
+                <p class="modal-desc">Enter a topic you'd like to see debated.</p>
+                <input type="text" id="topic-input" placeholder="e.g., Should AI have rights?" autocomplete="off">
+                <button id="btn-submit-topic" class="btn btn-primary">Submit Suggestion</button>
+            </div>
+        </div>
+
         <!-- Setup Panel (shown on load) -->
         <div id="setup-panel" class="setup-panel">
             <div class="setup-card">
@@ -218,6 +242,7 @@
 
     <script src="js/api.js"></script>
     <script src="js/debate-ui.js"></script>
+    <script src="js/community.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

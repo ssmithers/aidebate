@@ -11,6 +11,8 @@ sys.path.insert(0, str(parent_dir))
 sys.path.append('/Users/ssmithers/Desktop/CODE/dals')
 
 from backend.debate_manager import DebateManager
+from backend.community_routes import community_bp
+from backend.community_db import create_tables
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)
@@ -18,6 +20,12 @@ CORS(app)
 # Initialize debate manager
 sessions_dir = Path(__file__).parent.parent / 'sessions'
 debate_manager = DebateManager(sessions_dir)
+
+# Register community routes
+app.register_blueprint(community_bp)
+
+# Initialize community database
+create_tables()
 
 # Load models config
 models_config_path = Path(__file__).parent.parent / 'config' / 'models.json'
