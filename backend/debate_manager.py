@@ -358,6 +358,19 @@ class DebateManager:
                     content = f"{label} {response.content}".strip()
                     messages.append({"role": "user", "content": content})
 
+        # CRITICAL: Add explicit task instruction for CX questions to prevent "extract" confusion
+        speech_type = current_speech["type"]
+        if speech_type == "cx_question":
+            messages.append({
+                "role": "user",
+                "content": f"Now generate your {current_speech['speech']} question. Ask ONE strategic cross-examination question about their argument above. Do NOT extract from previous text - CREATE a new question."
+            })
+        elif speech_type == "cx_answer":
+            messages.append({
+                "role": "user",
+                "content": f"Now provide your answer. Respond directly to the question that was just asked. Do NOT extract from previous text - CREATE a new answer."
+            })
+
         return messages
     
     def _get_system_prompt(self, topic: str, side: str, current_speech: dict, moderator_message: str | None) -> str:
