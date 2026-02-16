@@ -13,6 +13,8 @@ sys.path.append('/Users/ssmithers/Desktop/CODE/dals')
 from backend.debate_manager import DebateManager
 from backend.community_routes import community_bp
 from backend.community_db import create_tables
+from backend.debate_engagement_routes import engagement_bp
+from backend.debate_engagement_db import create_engagement_tables
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)
@@ -24,8 +26,14 @@ debate_manager = DebateManager(sessions_dir)
 # Register community routes
 app.register_blueprint(community_bp)
 
+# Register engagement routes (Copyright 2026 Stephen F Smithers)
+app.register_blueprint(engagement_bp)
+
 # Initialize community database
 create_tables()
+
+# Initialize engagement tables (Patent Claims #5, #6 - Stephen F Smithers)
+create_engagement_tables()
 
 # Load models config
 models_config_path = Path(__file__).parent.parent / 'config' / 'models.json'
