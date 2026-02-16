@@ -2,6 +2,7 @@ import json
 import time
 import uuid
 from pathlib import Path
+from typing import Optional
 import sys
 
 from .models import DebateSession, DebateTurn, DebateResponse, ModelUsage

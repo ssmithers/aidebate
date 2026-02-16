@@ -1,9 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 
 class ModelUsage(BaseModel):
     """Track model usage for a single API call."""
+    model_config = ConfigDict(protected_namespaces=())
+
     model: str  # e.g., "claude-opus-4-6", "glm-flash"
     model_type: str  # "anthropic" or "lm_studio"
     purpose: str  # "debate_content" or "formatting"
@@ -14,6 +16,8 @@ class ModelUsage(BaseModel):
 
 
 class DebateResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     model_alias: str
     stance: str  # "aff" or "neg"
     speaker_position: str  # "1A", "2A", "1N", "2N"
