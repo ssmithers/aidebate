@@ -167,77 +167,147 @@ def get_history(session_id):
 @app.route('/api/debate/export/<session_id>', methods=['GET'])
 def export_debate_markdown(session_id):
     """
-    Export debate as markdown transcript with legend.
+    Export debate as beautifully formatted markdown transcript with summaries.
 
     Response: markdown text
     """
     try:
         session = debate_manager._load_session(session_id)
+        from datetime import datetime
 
-        # Build markdown transcript
-        md = f"# Policy Debate Transcript\n\n"
-        md += f"**Topic**: {session.topic}\n\n"
-        md += f"**Affirmative Model**: {session.models.get('aff', 'Unknown')}\n"
-        md += f"**Negative Model**: {session.models.get('neg', 'Unknown')}\n\n"
-        md += "---\n\n"
+        # Header
+        md = f"# 🎙️ Policy Debate Transcript\n\n"
+        md += f"> **Topic**: {session.topic}\n\n"
 
-        # Legend
-        md += "## Legend\n\n"
-        md += "### Speech Types\n"
-        md += "- **Constructive**: Opening arguments presenting the case\n"
-        md += "- **Cross-Examination (CX)**: Question period where opponent challenges arguments\n"
-        md += "- **Rebuttal**: Arguments refuting opponent's case\n"
-        md += "- **Closing**: Final summary arguments\n\n"
+        # Debate info table
+        md += "## 📋 Debate Information\n\n"
+        md += "| Category | Details |\n"
+        md += "|----------|----------|\n"
+        md += f"| **Format** | Policy Debate (18 speeches) |\n"
+        md += f"| **Affirmative Team** | {session.models.get('aff', 'Unknown')} |\n"
+        md += f"| **Negative Team** | {session.models.get('neg', 'Unknown')} |\n"
+        md += f"| **Total Speeches** | {len(session.turns)} |\n"
+        md += f"| **Status** | {session.status.title()} |\n\n"
 
-        md += "### Speech Labels\n"
-        md += "- **1AC**: First Affirmative Constructive\n"
-        md += "- **1NC**: First Negative Constructive\n"
-        md += "- **2AC**: Second Affirmative Constructive\n"
-        md += "- **2NC**: Second Negative Constructive\n"
-        md += "- **1NR**: First Negative Rebuttal\n"
-        md += "- **1AR**: First Affirmative Rebuttal\n"
-        md += "- **2NR**: Second Negative Rebuttal\n"
-        md += "- **2AR**: Second Affirmative Rebuttal\n"
-        md += "- **CX by [Speaker]**: Cross-examination question\n"
-        md += "- **Answer by [Speaker]**: Cross-examination response\n\n"
-
-        md += "### Speaker Positions\n"
-        md += "- **1A/2A**: First/Second Affirmative Speaker\n"
-        md += "- **1N/2N**: First/Second Negative Speaker\n\n"
+        # Table of contents
+        md += "## 📑 Table of Contents\n\n"
+        md += "1. [Constructive Speeches](#constructive-speeches)\n"
+        md += "2. [Cross-Examinations](#cross-examinations)\n"
+        md += "3. [Rebuttals](#rebuttals)\n"
+        md += "4. [Closing Arguments](#closing-arguments)\n"
+        md += "5. [Summary](#summary)\n\n"
 
         md += "---\n\n"
-        md += "## Transcript\n\n"
 
-        # Transcript
+        # Organize speeches by type
+        constructives = []
+        cross_exams = []
+        rebuttals = []
+        closings = []
+
         for turn in session.turns:
-            # Moderator message
-            if turn.moderator_message:
-                md += f"### [Moderator]\n\n"
-                md += f"{turn.moderator_message}\n\n"
+            if turn.speech_type == "constructive":
+                constructives.append(turn)
+            elif turn.speech_type in ["cx_question", "cx_answer"]:
+                cross_exams.append(turn)
+            elif turn.speech_type == "rebuttal":
+                rebuttals.append(turn)
+            elif turn.speech_type == "closing":
+                closings.append(turn)
 
-            # Speech
+        # Constructive Speeches
+        if constructives:
+            md += "## 🏗️ Constructive Speeches\n\n"
+            md += "_Opening arguments presenting each team's case_\n\n"
+            for turn in constructives:
+                md += format_speech_markdown(turn)
+            md += "\n---\n\n"
+
+        # Cross-Examinations
+        if cross_exams:
+            md += "## 🔍 Cross-Examinations\n\n"
+            md += "_Strategic questioning to challenge opposing arguments_\n\n"
+            for turn in cross_exams:
+                md += format_speech_markdown(turn)
+            md += "\n---\n\n"
+
+        # Rebuttals
+        if rebuttals:
+            md += "## ⚔️ Rebuttals\n\n"
+            md += "_Refutation of opposing arguments and extension of own case_\n\n"
+            for turn in rebuttals:
+                md += format_speech_markdown(turn)
+            md += "\n---\n\n"
+
+        # Closing Arguments (highlighted)
+        if closings:
+            md += "## 🎯 Closing Arguments\n\n"
+            md += "_Final summaries and persuasive appeals_\n\n"
+            for turn in closings:
+                md += format_speech_markdown(turn, is_closing=True)
+            md += "\n---\n\n"
+
+        # Summary section with both closing arguments
+        md += "## 📊 Summary\n\n"
+        md += "### Final Positions\n\n"
+
+        # Extract closing arguments
+        aff_closing = None
+        neg_closing = None
+
+        for turn in closings:
             for response in turn.responses:
-                speech_label = turn.speech_name
-                stance_label = "Affirmative" if response.stance == "aff" else "Negative"
+                if response.stance == "aff":
+                    aff_closing = response.content
+                elif response.stance == "neg":
+                    neg_closing = response.content
 
-                md += f"### {speech_label} ({stance_label})\n\n"
-                md += f"**Speaker**: {response.speaker_position}\n"
-                md += f"**Model**: {response.model_alias}\n\n"
-                md += f"{response.content}\n\n"
+        if aff_closing:
+            md += "#### ✅ Affirmative Summary\n\n"
+            md += f"> {aff_closing}\n\n"
 
-                # Citations
-                if response.citations:
-                    md += "**Sources**:\n"
-                    for i, citation in enumerate(response.citations, 1):
-                        md += f"{i}. {citation.get('text', 'Unknown source')}\n"
-                    md += "\n"
+        if neg_closing:
+            md += "#### ❌ Negative Summary\n\n"
+            md += f"> {neg_closing}\n\n"
 
-                md += "---\n\n"
+        md += "---\n\n"
+        md += "_Generated by AI Debate Simulator_\n"
 
         return md, 200, {'Content-Type': 'text/markdown; charset=utf-8'}
 
     except Exception as e:
         return jsonify({'error': str(e)}), 404
+
+
+def format_speech_markdown(turn, is_closing=False):
+    """Helper function to format a speech turn as markdown."""
+    md = ""
+
+    for response in turn.responses:
+        speech_label = turn.speech_name
+        stance_label = "Affirmative" if response.stance == "aff" else "Negative"
+        stance_emoji = "✅" if response.stance == "aff" else "❌"
+
+        # Use blockquote for closing arguments to make them stand out
+        if is_closing:
+            md += f"### {stance_emoji} {speech_label}\n\n"
+            md += f"**{stance_label} Team** • Speaker {response.speaker_position} • Model: `{response.model_alias}`\n\n"
+            md += f"> {response.content}\n\n"
+        else:
+            md += f"### {speech_label}\n\n"
+            md += f"**{stance_label} Team** • Speaker {response.speaker_position} • Model: `{response.model_alias}`\n\n"
+            md += f"{response.content}\n\n"
+
+        # Citations
+        if response.citations:
+            md += "**📚 Sources**:\n"
+            for i, citation in enumerate(response.citations, 1):
+                md += f"{i}. {citation.get('text', 'Unknown source')}\n"
+            md += "\n"
+
+        md += "\n"
+
+    return md
 
 
 @app.route('/api/debate/usage/<session_id>', methods=['GET'])
