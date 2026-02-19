@@ -34,7 +34,18 @@
       "temperature": 0.3,
       "max_tokens": 16384,
       "name": "GLM-4.7-Flash 30B",
+      "note": "LOCAL - Free inference via LM Studio",
       "cost_per_mtok": {"input": 0.0, "output": 0.0}
+    },
+    "gemini-flash": {
+      "id": "gemini-2.5-flash",
+      "type": "google",
+      "temperature": 0.3,
+      "max_tokens": 2048,
+      "name": "Gemini 2.5 Flash",
+      "note": "COST-OPTIMIZER - 70% cheaper than Haiku, good for batch/background tasks",
+      "cost_per_mtok": {"input": 0.3, "output": 2.5},
+      "api_endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     }
   },
   "formatter": {
@@ -43,5 +54,13 @@
     "max_tokens": 1000,
     "note": "Haiku for formatting - 60x cheaper than Opus, uses subscription credits first"
   },
-  "_note": "Use lm_studio_detector.py to add newly loaded models automatically"
+  "defaults": {
+    "interactive_model": "claude-haiku",
+    "default_model": "claude-sonnet",
+    "batch_model": "gemini-flash",
+    "local_model": "glm-flash",
+    "premium_model": "claude-opus"
+  },
+  "google_api_key_env": "GOOGLE_API_KEY",
+  "_note": "Hybrid strategy: Haiku for interactive, Sonnet for default, Gemini for batch/cost optimization, GLM for code gen, Opus for critical reviews"
 }
