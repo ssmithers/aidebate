@@ -37,13 +37,24 @@
       "note": "LOCAL - Free inference via LM Studio",
       "cost_per_mtok": {"input": 0.0, "output": 0.0}
     },
+    "gemini-3-pro": {
+      "id": "gemini-3-pro-preview",
+      "type": "google",
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "name": "Gemini 3 Pro Preview",
+      "note": "COST-OPTIMIZER (PREFERRED) - 33% cheaper than Sonnet, 2M context, better reasoning",
+      "cost_per_mtok": {"input": 2.0, "output": 12.0},
+      "api_endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent",
+      "fallback_model": "gemini-flash"
+    },
     "gemini-flash": {
       "id": "gemini-2.5-flash",
       "type": "google",
       "temperature": 0.3,
       "max_tokens": 2048,
       "name": "Gemini 2.5 Flash",
-      "note": "COST-OPTIMIZER - 70% cheaper than Haiku, good for batch/background tasks",
+      "note": "FALLBACK - 70% cheaper than Haiku, used when Gemini 3 unavailable (503 errors)",
       "cost_per_mtok": {"input": 0.3, "output": 2.5},
       "api_endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     }
@@ -57,10 +68,11 @@
   "defaults": {
     "interactive_model": "claude-haiku",
     "default_model": "claude-sonnet",
-    "batch_model": "gemini-flash",
+    "batch_model": "gemini-3-pro",
+    "batch_fallback": "gemini-flash",
     "local_model": "glm-flash",
     "premium_model": "claude-opus"
   },
   "google_api_key_env": "GOOGLE_API_KEY",
-  "_note": "Hybrid strategy: Haiku for interactive, Sonnet for default, Gemini for batch/cost optimization, GLM for code gen, Opus for critical reviews"
+  "_note": "Hybrid strategy: Haiku for interactive, Sonnet for default, Gemini 3 Pro for batch (fallback to 2.5 Flash if 503), GLM for code gen, Opus for critical reviews"
 }
