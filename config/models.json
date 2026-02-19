@@ -1,20 +1,40 @@
 {
   "lm_studio_endpoint": "http://192.168.1.198:5555/v1/chat/completions",
   "models": {
+    "claude-sonnet": {
+      "id": "claude-sonnet-4-5-20250929",
+      "type": "anthropic",
+      "temperature": 0.7,
+      "max_tokens": 16384,
+      "name": "Claude Sonnet 4.5",
+      "note": "DEFAULT - Balanced quality/cost, uses subscription credits first",
+      "cost_per_mtok": {"input": 3.0, "output": 15.0}
+    },
     "claude-opus": {
       "id": "claude-opus-4-6",
       "type": "anthropic",
       "temperature": 0.7,
       "max_tokens": 16384,
       "name": "Claude Opus 4.6",
-      "note": "SUBSCRIPTION ONLY - uses monthly credits, never API key"
+      "note": "PREMIUM - Best reasoning, uses subscription credits first",
+      "cost_per_mtok": {"input": 5.0, "output": 25.0}
+    },
+    "claude-haiku": {
+      "id": "claude-haiku-4-5-20251001",
+      "type": "anthropic",
+      "temperature": 0.7,
+      "max_tokens": 16384,
+      "name": "Claude Haiku 4.5",
+      "note": "BUDGET - Fast and cheap, uses subscription credits first",
+      "cost_per_mtok": {"input": 1.0, "output": 5.0}
     },
     "glm-flash": {
       "id": "zai-org/glm-4.7-flash",
       "type": "lm_studio",
       "temperature": 0.3,
       "max_tokens": 16384,
-      "name": "GLM-4.7-Flash 30B"
+      "name": "GLM-4.7-Flash 30B",
+      "cost_per_mtok": {"input": 0.0, "output": 0.0}
     }
   },
   "formatter": {
