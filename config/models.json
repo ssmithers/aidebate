@@ -67,12 +67,12 @@
   },
   "defaults": {
     "interactive_model": "claude-haiku",
-    "default_model": "claude-sonnet",
-    "batch_model": "gemini-3-pro",
-    "batch_fallback": "gemini-flash",
+    "default_model": "gemini-3-pro",
+    "default_fallback": "gemini-flash",
+    "batch_model": "claude-sonnet",
     "local_model": "glm-flash",
     "premium_model": "claude-opus"
   },
   "google_api_key_env": "GOOGLE_API_KEY",
-  "_note": "Hybrid strategy: Haiku for interactive, Sonnet for default, Gemini 3 Pro for batch (fallback to 2.5 Flash if 503), GLM for code gen, Opus for critical reviews"
+  "_note": "Hybrid strategy: Haiku for interactive, Gemini 3 Pro for DEFAULT (fallback to 2.5 Flash if 503), Sonnet for batch, GLM for code gen, Opus for critical reviews"
 }
