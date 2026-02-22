@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Stephen Smithers. All Rights Reserved.
+# Author: Stephen Smithers <smithers_steve@hotmail.com>
+# GitHub: https://github.com/ssmithers
+# Unauthorized copying, distribution, or use is strictly prohibited.
 from flask import Blueprint, request, jsonify
 import sqlite3
 from .community_db import add_topic, add_vote, get_ranked_topics, DB_FILE
