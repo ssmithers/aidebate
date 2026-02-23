@@ -38,15 +38,16 @@
       "cost_per_mtok": {"input": 0.0, "output": 0.0}
     },
     "gemini-3-pro": {
-      "id": "gemini-3-pro-preview",
+      "id": "gemini-3-1-pro",
       "type": "google",
       "temperature": 0.3,
-      "max_tokens": 4096,
-      "name": "Gemini 3 Pro Preview",
-      "note": "COST-OPTIMIZER (PREFERRED) - 33% cheaper than Sonnet, 2M context, better reasoning",
+      "max_tokens": 8192,
+      "name": "Gemini 3.1 Pro",
+      "note": "COST-OPTIMIZER (DEFAULT) - $2/$12, 1M context, 3-level thinking (low/medium/high/max), released 2026-02-19",
       "cost_per_mtok": {"input": 2.0, "output": 12.0},
-      "api_endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent",
-      "fallback_model": "gemini-flash"
+      "api_endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-1-pro:generateContent",
+      "fallback_model": "gemini-flash",
+      "thinking_levels": ["low", "medium", "high", "max"]
     },
     "gemini-flash": {
       "id": "gemini-2.5-flash",
@@ -74,5 +75,5 @@
     "premium_model": "claude-opus"
   },
   "google_api_key_env": "GOOGLE_API_KEY",
-  "_note": "Hybrid strategy: Haiku for interactive, Gemini 3 Pro for DEFAULT (fallback to 2.5 Flash if 503), Sonnet for batch, GLM for code gen, Opus for critical reviews"
+  "_note": "Hybrid strategy: Haiku for interactive, Gemini 3.1 Pro for DEFAULT (fallback to 2.5 Flash if 503), Sonnet for batch/nuanced judgment, GLM for code gen, Opus for critical reviews. Updated 2026-02-23."
 }
